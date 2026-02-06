@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   BASE THEME
+   ========================================================= */
+
+body {
+  background: #f4f6f8;
+  color: #0b1220;
+}
+
+:root {
+  --radius: 18px;
+}
+
+/* =========================================================
+   GENERIC CARD
+   ========================================================= */
+
+.card {
+  border-radius: var(--radius);
+}
+
+/* =========================================================
+   DATA FLOW ANIMATIONS
+   ========================================================= */
+
+/* Horizontal lane flow (left → right) */
+@keyframes data-flow {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(220%);
+  }
+}
+
+/* Packet / dot movement (left → right) */
+@keyframes packet-flow {
+  from {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120vw);
+    opacity: 0;
+  }
+}
+
+/* Packet / dot movement (right → left) */
+@keyframes packet-flow-reverse {
+  from {
+    transform: translateX(120vw);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+}
+
+/* Animation helpers */
+.animate-data-flow {
+  animation-name: data-flow;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.animate-packet-flow {
+  animation-name: packet-flow;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.animate-packet-flow-reverse {
+  animation-name: packet-flow-reverse;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* =========================================================
+   METRICS PULSE ANIMATION
+   ========================================================= */
+
+@keyframes metric-pulse {
+  0% {
+    opacity: 0.2;
+    transform: translateX(-30%);
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.2;
+    transform: translateX(130%);
+  }
+}
+
+.animate-metric-pulse {
+  animation: metric-pulse 3.5s linear infinite;
+}
