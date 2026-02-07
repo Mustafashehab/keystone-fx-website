@@ -7,15 +7,15 @@ import InvestorSection from "@/components/InvestorSection";
 export default async function Home({
   params,
 }: {
-  params: Promise<{ lang: Lang }>;
+  params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
 
   return (
     <>
       <InteractiveHero
-        title={t(lang, "hero.title") as string}
-        subtitle={t(lang, "hero.subtitle") as string}
+        title={t(lang as Lang, "hero.title") as string}
+        subtitle={t(lang as Lang, "hero.subtitle") as string}
       />
 
       {/* EXECUTION METRICS */}
