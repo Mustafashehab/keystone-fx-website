@@ -1,6 +1,7 @@
 import { Lang } from "@/lib/i18n";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 export default async function LangLayout({
   children,
@@ -16,6 +17,7 @@ export default async function LangLayout({
       <NavBar />
       {children}
       <Footer lang={lang as Lang} />
+      <WhatsAppButton />
     </>
   );
 }
