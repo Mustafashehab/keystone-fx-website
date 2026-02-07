@@ -17,6 +17,13 @@ export default function NavBar() {
     return parts.join("/");
   };
 
+  const handleWhatsAppClick = () => {
+    const phoneNumber = "447511648370";
+    const message = "Hello! I'm interested in learning more about Keystone FX.";
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
   const navItems = [
     { key: "products", path: "products" },
     { key: "platforms", path: "platforms" },
@@ -67,13 +74,13 @@ export default function NavBar() {
 
         {/* SIGN IN & LANGUAGE SWITCH */}
         <div className="flex items-center gap-6">
-          {/* Sign In Button */}
-          <Link 
-            href={`/${lang}/signin`}
+          {/* Sign In Button - Now opens WhatsApp */}
+          <button 
+            onClick={handleWhatsAppClick}
             className="text-sm font-medium text-slate-700 hover:text-yellow-600 transition-colors"
           >
             {t(lang, "nav.signin")}
-          </Link>
+          </button>
 
           {/* Language Switch */}
           <div className="text-sm whitespace-nowrap text-slate-600">
