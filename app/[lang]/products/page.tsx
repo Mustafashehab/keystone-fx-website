@@ -1,4 +1,8 @@
+"use client";
+
 import { Lang, t } from "@/lib/i18n";
+import Image from "next/image";
+import { useParams } from "next/navigation";
 
 interface ProductCardProps {
   image: string;
@@ -59,16 +63,20 @@ function ProductCard({ image, title, description, features, specs }: ProductCard
   );
 }
 
-export default async function Products({
-  params,
-}: {
-  params: Promise<{ lang: Lang }>;
-}) {
-  const { lang } = await params;
+export default function Products() {
+  const params = useParams();
+  const lang = (params?.lang as Lang) || "en";
+
+  const handleWhatsAppClick = () => {
+    const phoneNumber = "447511648370";
+    const message = "Hello! I'm interested in learning more about Keystone FX trading products.";
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
 
   const products = [
     {
-      image: "/forex-pairs.jpg",
+      image: "/Forex-Pairs.jpg",
       title: t(lang, "products.forexPairs.title") as string,
       description: t(lang, "products.forexPairs.description") as string,
       features: t(lang, "products.forexPairs.features") as string[],
@@ -88,7 +96,7 @@ export default async function Products({
       ]
     },
     {
-      image: "/indices.jpg",
+      image: "/Indices.jpg",
       title: t(lang, "products.indices.title") as string,
       description: t(lang, "products.indices.description") as string,
       features: t(lang, "products.indices.features") as string[],
@@ -108,7 +116,7 @@ export default async function Products({
       ]
     },
     {
-      image: "/commodities.jpg",
+      image: "/Commodities.jpg",
       title: t(lang, "products.commodities.title") as string,
       description: t(lang, "products.commodities.description") as string,
       features: t(lang, "products.commodities.features") as string[],
@@ -128,7 +136,7 @@ export default async function Products({
       ]
     },
     {
-      image: "/cryptocurrencies.jpg",
+      image: "/Cryptocurrencies.jpg",
       title: t(lang, "products.cryptocurrencies.title") as string,
       description: t(lang, "products.cryptocurrencies.description") as string,
       features: t(lang, "products.cryptocurrencies.features") as string[],
@@ -148,7 +156,7 @@ export default async function Products({
       ]
     },
     {
-      image: "/stocks-cfds.jpg",
+      image: "/Stocks-CFDS.jpg",
       title: t(lang, "products.stocksCfds.title") as string,
       description: t(lang, "products.stocksCfds.description") as string,
       features: t(lang, "products.stocksCfds.features") as string[],
@@ -168,7 +176,7 @@ export default async function Products({
       ]
     },
     {
-      image: "/bonds-etfs.jpg",
+      image: "/Bonds-ETFS.jpg",
       title: t(lang, "products.bondsEtfs.title") as string,
       description: t(lang, "products.bondsEtfs.description") as string,
       features: t(lang, "products.bondsEtfs.features") as string[],
@@ -222,10 +230,16 @@ export default async function Products({
             {t(lang, "products.cta.subtitle")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="rounded-lg bg-yellow-400 px-8 py-3 font-semibold text-slate-900 transition hover:bg-yellow-300">
+            <button 
+              onClick={handleWhatsAppClick}
+              className="rounded-lg bg-yellow-400 px-8 py-3 font-semibold text-slate-900 transition hover:bg-yellow-300"
+            >
               {t(lang, "products.cta.liveAccount")}
             </button>
-            <button className="rounded-lg border-2 border-white px-8 py-3 font-semibold text-white transition hover:bg-white/10">
+            <button 
+              onClick={handleWhatsAppClick}
+              className="rounded-lg border-2 border-white px-8 py-3 font-semibold text-white transition hover:bg-white/10"
+            >
               {t(lang, "products.cta.demoAccount")}
             </button>
           </div>
