@@ -14,8 +14,8 @@ export default async function Home({
   return (
     <>
       <InteractiveHero
-        title={t(lang, "hero.title")}
-        subtitle={t(lang, "hero.subtitle")}
+        title={t(lang, "hero.title") as string}
+        subtitle={t(lang, "hero.subtitle") as string}
       />
 
       {/* EXECUTION METRICS */}

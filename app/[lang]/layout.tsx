@@ -7,7 +7,7 @@ export default async function LangLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ lang: Lang }>;
+  params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
 
@@ -15,7 +15,7 @@ export default async function LangLayout({
     <>
       <NavBar />
       {children}
-      <Footer lang={lang} />
+      <Footer lang={lang as Lang} />
     </>
   );
 }
