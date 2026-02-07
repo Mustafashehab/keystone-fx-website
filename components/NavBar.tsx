@@ -21,7 +21,6 @@ export default function NavBar() {
     { key: "products", path: "products" },
     { key: "platforms", path: "platforms" },
     { key: "accounts", path: "accounts" },
-    { key: "blog", path: "blog" },
     { key: "about", path: "about" },
     { key: "contact", path: "contact" },
   ];
@@ -31,10 +30,9 @@ export default function NavBar() {
       {/* FIXED NAVBAR HEIGHT */}
       <div className="mx-auto flex h-[150px] max-w-6xl items-center justify-between px-10">
         
-        {/* LOGO BLOCK (INDEPENDENT SIZE) */}
+        {/* LOGO BLOCK */}
         <Link href={`/${lang}`} className="flex items-center gap-4">
           <div className="relative h-[150px] w-[150px] md:h-[150px] md:w-[150px] shrink-0">
-
             <Image
               src="/logo.png"
               alt="Keystone FX"
@@ -54,24 +52,37 @@ export default function NavBar() {
           </div>
         </Link>
 
-        {/* NAV LINKS */}
-        <nav className="hidden md:flex gap-6 text-sm">
+        {/* NAV LINKS - Moved closer with flex-1 and justify-center */}
+        <nav className="hidden md:flex gap-6 text-sm flex-1 justify-center ml-[-100px]">
           {navItems.map((item) => (
             <Link
               key={item.key}
               href={`/${lang}/${item.path}`}
-              className="hover:text-yellow-600"
+              className="hover:text-yellow-600 transition-colors"
             >
               {t(lang, `nav.${item.key}`)}
             </Link>
           ))}
         </nav>
 
-        {/* LANGUAGE SWITCH */}
-        <div className="text-sm whitespace-nowrap">
-          <Link href={swapLang("en")}>EN</Link> |{" "}
-          <Link href={swapLang("ar")}>AR</Link> |{" "}
-          <Link href={swapLang("zh")}>中文</Link>
+        {/* SIGN IN & LANGUAGE SWITCH */}
+        <div className="flex items-center gap-6">
+          {/* Sign In Button */}
+          <Link 
+            href={`/${lang}/signin`}
+            className="text-sm font-medium text-slate-700 hover:text-yellow-600 transition-colors"
+          >
+            {t(lang, "nav.signin")}
+          </Link>
+
+          {/* Language Switch */}
+          <div className="text-sm whitespace-nowrap text-slate-600">
+            <Link href={swapLang("en")} className="hover:text-yellow-600">EN</Link>
+            {" | "}
+            <Link href={swapLang("ar")} className="hover:text-yellow-600">AR</Link>
+            {" | "}
+            <Link href={swapLang("zh")} className="hover:text-yellow-600">中文</Link>
+          </div>
         </div>
       </div>
     </header>
