@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function InteractiveHero({
   title,
@@ -64,7 +65,7 @@ export default function InteractiveHero({
         ))}
       </div>
 
-      {/* Execution packets (single direction – stable baseline) */}
+      {/* Execution packets */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -88,15 +89,34 @@ export default function InteractiveHero({
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-5xl px-6 py-44 text-center">
+        {/* H1 */}
         <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-tight">
           {title}
         </h1>
 
         <div className="mx-auto my-6 h-px w-28 bg-gradient-to-r from-transparent via-yellow-500/60 to-transparent" />
 
+        {/* Subtitle */}
         <p className="mx-auto max-w-2xl text-slate-300 text-base md:text-lg leading-relaxed">
           {subtitle}
         </p>
+
+        {/* IMPORTANT DISCLAIMER — ABOVE THE FOLD */}
+        <div className="mx-auto mt-6 max-w-3xl text-sm text-slate-400 opacity-90">
+          <strong>Important:</strong> Keystone FX is a technology and infrastructure
+          provider. We do not operate as a broker, do not accept client funds, and
+          do not provide investment or advisory services.
+        </div>
+
+        {/* NON-BROKER CTA */}
+        <div className="mt-8 flex justify-center">
+          <Link
+            href="/keystone-fx-explained"
+            className="rounded-md border border-yellow-500/40 px-6 py-2 text-sm font-medium text-yellow-400 hover:bg-yellow-500/10 transition"
+          >
+            Learn how Keystone FX infrastructure works
+          </Link>
+        </div>
       </div>
     </section>
   );

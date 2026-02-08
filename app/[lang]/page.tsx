@@ -1,4 +1,3 @@
-import { Lang, t } from "@/lib/i18n";
 import InteractiveHero from "@/components/InteractiveHero";
 import ExecutionMetrics from "@/components/ExecutionMetrics";
 import ExecutionAISection from "@/components/ExecutionAISection";
@@ -9,13 +8,13 @@ export default async function Home({
 }: {
   params: Promise<{ lang: string }>;
 }) {
-  const { lang } = await params;
+  await params; // keep signature consistent, lang not needed here
 
   return (
     <>
       <InteractiveHero
-        title={t(lang as Lang, "hero.title") as string}
-        subtitle={t(lang as Lang, "hero.subtitle") as string}
+        title="Institutional Trading Infrastructure & Execution Technology"
+        subtitle="Keystone FX provides institutional-grade trading infrastructure and execution technology for professional market participants. Our systems are designed to support low-latency execution, robust connectivity, and transparent architecture across professional trading environments."
       />
 
       {/* EXECUTION METRICS */}
