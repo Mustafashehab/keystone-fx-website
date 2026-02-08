@@ -135,8 +135,8 @@ export default function Contact() {
               {t(lang, "contact.info.phone.title")}
             </h3>
             <p className="text-slate-600 mb-2">{t(lang, "contact.info.phone.description")}</p>
-            <a href="tel:+9611253999" className="text-2xl font-bold text-slate-900 hover:text-yellow-600 transition">
-              +961 1 253 999
+            <a href="tel:+447511648370" className="text-2xl font-bold text-slate-900 hover:text-yellow-600 transition">
+              +44 7511 648370
             </a>
           </div>
 

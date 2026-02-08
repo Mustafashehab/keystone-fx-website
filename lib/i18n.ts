@@ -664,7 +664,7 @@ const dict = {
         email: "عنوان البريد الإلكتروني",
         emailPlaceholder: "your.email@example.com",
         phone: "رقم الهاتف",
-        phonePlaceholder: "+961 00 000 000",
+        phonePlaceholder: "+44 0000 000 000",
         topic: "الموضوع",
         topicPlaceholder: "اختر موضوعاً",
         topics: {
