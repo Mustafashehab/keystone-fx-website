@@ -86,15 +86,15 @@ export default function InteractiveHero({
         ))}
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 mx-auto max-w-5xl px-6 py-44 text-center">
-        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-tight">
+      {/* Content - RESPONSIVE PADDING */}
+      <div className="relative z-10 mx-auto max-w-5xl px-4 md:px-6 py-16 md:py-32 lg:py-44 text-center">
+        <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-tight">
           {title}
         </h1>
 
-        <div className="mx-auto my-6 h-px w-28 bg-gradient-to-r from-transparent via-yellow-500/60 to-transparent" />
+        <div className="mx-auto my-4 md:my-6 h-px w-20 md:w-28 bg-gradient-to-r from-transparent via-yellow-500/60 to-transparent" />
 
-        <p className="mx-auto max-w-2xl text-slate-300 text-base md:text-lg leading-relaxed">
+        <p className="mx-auto max-w-2xl text-slate-300 text-sm md:text-base lg:text-lg leading-relaxed px-4">
           {subtitle}
         </p>
       </div>
