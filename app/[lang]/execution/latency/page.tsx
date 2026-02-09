@@ -1,0 +1,48 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Latency Optimization in Institutional FX Execution | Keystone FX",
+  description:
+    "Latency optimization for institutional FX execution systems. Focuses on synchronization, venue response behavior, and lifecycle measurement rather than raw speed.",
+  alternates: {
+    canonical: "https://keystone-fx.com/execution/latency",
+  },
+};
+
+export default function ExecutionLatencyPage() {
+  return (
+    <main className="mx-auto max-w-5xl px-6 py-20 text-slate-900">
+
+      {/* Breadcrumb Schema — Option D */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Keystone FX", "item": "https://keystone-fx.com/" },
+              { "@type": "ListItem", "position": 2, "name": "Execution", "item": "https://keystone-fx.com/execution" },
+              { "@type": "ListItem", "position": 3, "name": "Latency Optimization", "item": "https://keystone-fx.com/execution/latency" }
+            ]
+          })
+        }}
+      />
+
+      {/* Breadcrumbs — Option C3 */}
+      <nav aria-label="Breadcrumb" className="mb-6 text-sm text-slate-500">
+        <ol className="flex flex-wrap gap-1">
+          <li><a href="/" className="underline">Keystone FX</a><span className="mx-1">/</span></li>
+          <li><a href="/execution" className="underline">Execution</a><span className="mx-1">/</span></li>
+          <li className="text-slate-700">Latency</li>
+        </ol>
+      </nav>
+
+      <h1 className="text-4xl font-semibold tracking-tight">
+        Latency Optimization in Institutional FX Execution
+      </h1>
+
+      {/* rest unchanged */}
+    </main>
+  );
+}
