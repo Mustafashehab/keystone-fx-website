@@ -12,7 +12,11 @@ export default function FixApiExecutionPage() {
         infrastructure.
       </p>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: FIX control layer */}
+      <section
+        id="fix-control-layer"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           FIX is an execution control layer
         </h2>
@@ -31,7 +35,11 @@ export default function FixApiExecutionPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: session design */}
+      <section
+        id="fix-session-design"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Session design and order lifecycle
         </h2>
@@ -49,7 +57,11 @@ export default function FixApiExecutionPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: routing models */}
+      <section
+        id="fix-routing-models"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Deterministic vs adaptive routing
         </h2>

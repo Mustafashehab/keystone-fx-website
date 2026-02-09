@@ -11,7 +11,11 @@ export default function ExecutionLatencyPage() {
         market participants operating latency-sensitive infrastructure.
       </p>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: latency synchronization */}
+      <section
+        id="latency-synchronization"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Latency is a synchronization problem
         </h2>
@@ -29,7 +33,11 @@ export default function ExecutionLatencyPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: latency measurement */}
+      <section
+        id="latency-measurement"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Measuring latency before optimizing
         </h2>
@@ -47,7 +55,11 @@ export default function ExecutionLatencyPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: venue behavior */}
+      <section
+        id="venue-response-behavior"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Venue behavior and response consistency
         </h2>

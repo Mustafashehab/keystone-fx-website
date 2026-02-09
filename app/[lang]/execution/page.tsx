@@ -51,7 +51,11 @@ export default function ExecutionPage() {
         for retail trading audiences.
       </p>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: execution system */}
+      <section
+        id="execution-system"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Execution is a system, not a feature
         </h2>
@@ -70,7 +74,11 @@ export default function ExecutionPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: execution philosophy */}
+      <section
+        id="execution-philosophy"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Keystone FX execution philosophy
         </h2>
@@ -88,7 +96,11 @@ export default function ExecutionPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-4">
+      {/* Anchor: execution topics */}
+      <section
+        id="execution-topics"
+        className="mt-12 space-y-4"
+      >
         <h2 className="text-2xl font-semibold">
           Execution topics covered in detail
         </h2>

@@ -11,7 +11,11 @@ export default function ExecutionSlippagePage() {
         market participants who require transparent execution analysis.
       </p>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: slippage definition */}
+      <section
+        id="slippage-definition"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Slippage is not an execution failure
         </h2>
@@ -28,7 +32,11 @@ export default function ExecutionSlippagePage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: pre vs post trade */}
+      <section
+        id="pre-post-trade-slippage"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Pre-trade vs post-trade slippage
         </h2>
@@ -45,7 +53,11 @@ export default function ExecutionSlippagePage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: transparency */}
+      <section
+        id="slippage-transparency"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Transparency over concealment
         </h2>

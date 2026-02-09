@@ -52,7 +52,11 @@ export default function LiquidityPage() {
         retail brokerage models.
       </p>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: liquidity structure */}
+      <section
+        id="liquidity-structure"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Liquidity is structure, not pricing
         </h2>
@@ -70,7 +74,11 @@ export default function LiquidityPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: liquidity philosophy */}
+      <section
+        id="liquidity-philosophy"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Keystone FX liquidity philosophy
         </h2>
@@ -87,7 +95,11 @@ export default function LiquidityPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: aggregation vs internalization */}
+      <section
+        id="liquidity-aggregation"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Aggregation versus internalization
         </h2>
@@ -104,7 +116,11 @@ export default function LiquidityPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
+      {/* Anchor: venue-aware liquidity */}
+      <section
+        id="venue-aware-liquidity"
+        className="mt-12 space-y-6"
+      >
         <h2 className="text-2xl font-semibold">
           Venue-aware liquidity interaction
         </h2>
