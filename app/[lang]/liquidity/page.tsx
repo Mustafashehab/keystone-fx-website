@@ -145,6 +145,31 @@ export default function LiquidityPage() {
         </ul>
       </section>
 
+      {/* OPTION C — Editorial internal linking */}
+      <section className="mt-12 border-t pt-6 space-y-4">
+        <h3 className="text-lg font-semibold">
+          Related infrastructure topics
+        </h3>
+
+        <ul className="list-disc pl-6 space-y-2 text-slate-700">
+          <li>
+            <a href="/execution" className="underline">
+              Execution infrastructure overview
+            </a>
+          </li>
+          <li>
+            <a href="/execution/fix-api" className="underline">
+              FIX API execution models
+            </a>
+          </li>
+          <li>
+            <a href="/explained/is-keystone-fx-a-broker" className="underline">
+              Is Keystone FX a broker?
+            </a>
+          </li>
+        </ul>
+      </section>
+
       <section className="mt-12 text-sm text-slate-600">
         <p>
           Keystone FX provides liquidity interaction infrastructure only. We do

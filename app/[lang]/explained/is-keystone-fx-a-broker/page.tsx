@@ -112,12 +112,13 @@ export default function IsKeystoneFxABrokerPage() {
         </p>
       </section>
 
-      <section className="mt-12 space-y-6">
-        <h2 className="text-2xl font-semibold">
-          Related explanations
-        </h2>
+      {/* OPTION C — Editorial internal linking */}
+      <section className="mt-12 border-t pt-6 space-y-4">
+        <h3 className="text-lg font-semibold">
+          Related infrastructure explanations
+        </h3>
 
-        <ul className="list-disc pl-6 space-y-2">
+        <ul className="list-disc pl-6 space-y-2 text-slate-700">
           <li>
             <a href="/execution" className="underline">
               Execution infrastructure overview
@@ -126,6 +127,11 @@ export default function IsKeystoneFxABrokerPage() {
           <li>
             <a href="/liquidity" className="underline">
               Liquidity interaction infrastructure
+            </a>
+          </li>
+          <li>
+            <a href="/execution/fix-api" className="underline">
+              FIX API execution models
             </a>
           </li>
         </ul>

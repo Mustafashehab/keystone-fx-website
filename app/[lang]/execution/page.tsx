@@ -112,6 +112,31 @@ export default function ExecutionPage() {
         </ul>
       </section>
 
+      {/* OPTION C — Editorial internal linking */}
+      <section className="mt-12 border-t pt-6 space-y-4">
+        <h3 className="text-lg font-semibold">
+          Related execution topics
+        </h3>
+
+        <ul className="list-disc pl-6 space-y-2 text-slate-700">
+          <li>
+            <a href="/execution/fix-api" className="underline">
+              FIX API execution models
+            </a>
+          </li>
+          <li>
+            <a href="/execution/latency" className="underline">
+              Latency measurement and optimization
+            </a>
+          </li>
+          <li>
+            <a href="/execution/slippage" className="underline">
+              Slippage analysis and execution quality
+            </a>
+          </li>
+        </ul>
+      </section>
+
       <section className="mt-12 text-sm text-slate-600">
         <p>
           Keystone FX provides execution infrastructure only. We do not operate
