@@ -1,3 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "FIX API Execution Models for Institutional FX | Keystone FX",
+  description:
+    "FIX API execution models used in institutional FX environments. Covers session design, deterministic routing, and execution control layers. Technology-only execution infrastructure, not brokerage.",
+  alternates: {
+    canonical: "https://keystone-fx.com/execution/fix-api",
+  },
+};
+
 export default function FixApiExecutionPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-20 text-slate-900">

@@ -1,3 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Slippage Measurement and Control in FX Execution | Keystone FX",
+  description:
+    "Institutional slippage measurement and execution quality analysis. Explains pre-trade vs post-trade slippage and transparent execution evaluation without internalization.",
+  alternates: {
+    canonical: "https://keystone-fx.com/execution/slippage",
+  },
+};
+
 export default function ExecutionSlippagePage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-20 text-slate-900">

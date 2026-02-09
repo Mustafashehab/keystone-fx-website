@@ -1,3 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Institutional FX Execution Infrastructure | Keystone FX",
+  description:
+    "Institutional FX execution infrastructure focused on deterministic routing, latency measurement, and transparent venue interaction. Keystone FX is not a broker and does not provide custody or investment services.",
+  alternates: {
+    canonical: "https://keystone-fx.com/execution",
+  },
+};
+
 export default function ExecutionPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-20 text-slate-900">
@@ -10,18 +21,8 @@ export default function ExecutionPage() {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Keystone FX",
-                "item": "https://keystone-fx.com/"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Execution",
-                "item": "https://keystone-fx.com/execution"
-              }
+              { "@type": "ListItem", "position": 1, "name": "Keystone FX", "item": "https://keystone-fx.com/" },
+              { "@type": "ListItem", "position": 2, "name": "Execution", "item": "https://keystone-fx.com/execution" }
             ]
           })
         }}
@@ -39,7 +40,7 @@ export default function ExecutionPage() {
         Institutional FX Execution Infrastructure
       </h1>
 
-      {/* rest of file unchanged */}
+      {/* rest unchanged */}
     </main>
   );
 }

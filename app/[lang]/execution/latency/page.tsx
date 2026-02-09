@@ -1,3 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Latency Optimization in Institutional FX Execution | Keystone FX",
+  description:
+    "Latency optimization for institutional FX execution systems. Focuses on synchronization, venue response behavior, and lifecycle measurement rather than raw speed.",
+  alternates: {
+    canonical: "https://keystone-fx.com/execution/latency",
+  },
+};
+
 export default function ExecutionLatencyPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-20 text-slate-900">
