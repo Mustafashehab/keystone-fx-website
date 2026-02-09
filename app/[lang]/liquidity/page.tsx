@@ -1,6 +1,46 @@
 export default function LiquidityPage() {
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is institutional FX liquidity?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text":
+            "Institutional FX liquidity refers to executable pricing and depth sourced from external venues such as banks, non-bank liquidity providers, and electronic trading venues, accessed through professional trading infrastructure."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Keystone FX provide liquidity?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text":
+            "No. Keystone FX does not provide liquidity as principal and does not act as counterparty. The company provides infrastructure that enables users to connect to external liquidity venues."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Keystone FX operate a B-book or internalize flow?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text":
+            "No. Keystone FX does not internalize trades, operate a dealer book, or offset flow internally. All liquidity interaction is handled externally."
+        }
+      }
+    ]
+  };
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-20 text-slate-900">
+      {/* FAQ Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       <h1 className="text-4xl font-semibold tracking-tight">
         Institutional FX Liquidity Infrastructure
       </h1>

@@ -1,6 +1,46 @@
 export default function ExecutionPage() {
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is institutional FX execution?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text":
+            "Institutional FX execution refers to the systems and processes used to route, manage, and execute orders across external liquidity venues using deterministic logic, latency measurement, and transparent routing models."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is execution the same as brokerage?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text":
+            "No. Execution infrastructure provides the technical systems used to execute trades, while brokerage involves client onboarding, custody, and acting as counterparty. Keystone FX provides execution infrastructure only."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Keystone FX internalize trades?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text":
+            "No. Keystone FX does not internalize trades, operate a B-book, or act as counterparty. All execution is routed externally according to execution logic."
+        }
+      }
+    ]
+  };
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-20 text-slate-900">
+      {/* FAQ Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       <h1 className="text-4xl font-semibold tracking-tight">
         Institutional FX Execution Infrastructure
       </h1>
