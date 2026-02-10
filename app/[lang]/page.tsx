@@ -1,7 +1,6 @@
 import ExecutionMetrics from "@/components/ExecutionMetrics";
 import ExecutionAISection from "@/components/ExecutionAISection";
 import InvestorSection from "@/components/InvestorSection";
-import HeroVideoController from "../../components/HeroVideoController";
 import Link from "next/link";
 
 export default async function Home({
@@ -13,39 +12,19 @@ export default async function Home({
 
   return (
     <>
-      {/* HERO SECTION — DUAL VIDEO CROSSFADE (FREEZE-SAFE) */}
-      <section className="relative min-h-screen overflow-hidden bg-black">
-        {/* Video playback controller (MOUNTED HERE) */}
-        <HeroVideoController />
+      {/* HERO SECTION — IMAGE BASED (FAST & SEO FRIENDLY) */}
+      <section
+        className="relative min-h-screen bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/hero/hero-ether.webp')",
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/55" />
 
-        {/* Video A */}
-        <video
-          id="hero-video-a"
-          className="absolute inset-0 h-full w-full object-cover hero-video hero-video-a hero-video-enhance"
-          src="/hero/hero-ether.mp4"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-        />
-
-        {/* Video B */}
-        <video
-          id="hero-video-b"
-          className="absolute inset-0 h-full w-full object-cover hero-video hero-video-b hero-video-enhance"
-          src="/hero/hero-ether.mp4"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-        />
-
-        {/* Softer, cinematic overlay (less wash-out) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/55 z-10" />
-
-        {/* Hero content — MATCHES MAIN */}
-        <div className="relative z-20 mx-auto max-w-4xl px-6 py-32 text-center">
-          <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
+        {/* Hero content */}
+        <div className="relative z-10 mx-auto max-w-4xl px-6 py-32 text-center text-white">
+          <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
             Institutional Trading Infrastructure &<br />
             Execution Technology
           </h1>

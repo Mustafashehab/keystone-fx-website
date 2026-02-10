@@ -1,6 +1,5 @@
 @tailwind base;
-@tailwind com
-ponents;
+@tailwind components;
 @tailwind utilities;
 
 /* =========================================================
@@ -107,59 +106,4 @@ body {
 
 .animate-metric-pulse {
   animation: metric-pulse 3.5s linear infinite;
-}
-
-/* =========================================================
-   HERO VIDEO — DUAL CROSSFADE LOOP (10s)
-   ========================================================= */
-
-.hero-video {
-  animation-duration: 10s;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  will-change: opacity;
-}
-
-.hero-video-a {
-  animation-name: heroFadeA;
-}
-
-.hero-video-b {
-  animation-name: heroFadeB;
-}
-
-@keyframes heroFadeA {
-  0% {
-    opacity: 1;
-  }
-  45% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-  95% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-@keyframes heroFadeB {
-  0% {
-    opacity: 0;
-  }
-  45% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  95% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
 }
