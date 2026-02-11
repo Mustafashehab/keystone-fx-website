@@ -2,63 +2,42 @@ import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://keystone-fx.com";
-  const lastModified = new Date();
 
   return [
     {
-      url: `${baseUrl}/en`,
-      lastModified,
+      url: `${baseUrl}/`,
+      lastModified: new Date(),
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/en/platforms`,
-      lastModified,
+      url: `${baseUrl}/execution`,
+      lastModified: new Date(),
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/en/accounts`,
-      lastModified,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/en/execution`,
-      lastModified,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/en/execution/fix-api`,
-      lastModified,
+      url: `${baseUrl}/execution/fix-api`,
+      lastModified: new Date(),
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/en/execution/latency`,
-      lastModified,
+      url: `${baseUrl}/execution/latency`,
+      lastModified: new Date(),
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/en/execution/slippage`,
-      lastModified,
+      url: `${baseUrl}/execution/slippage`,
+      lastModified: new Date(),
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/en/liquidity`,
-      lastModified,
+      url: `${baseUrl}/liquidity`,
+      lastModified: new Date(),
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/en/explained/is-keystone-fx-a-broker`,
-      lastModified,
+      url: `${baseUrl}/explained/is-keystone-fx-a-broker`,
+      lastModified: new Date(),
       priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/en/products`,
-      lastModified,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/en/contact`,
-      lastModified,
-      priority: 0.6,
     },
   ];
 }
