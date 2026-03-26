@@ -21,11 +21,12 @@ export default async function PortalDashboardPage() {
   const { data: profile } = await getClientProfile(user.id)
   if (!profile) redirect('/portal/kyc')
 
-  const [{ data: kyc }, { data: documents }, { data: tickets }] = await Promise.all([
-    getKYCByClientId(profile.id),
-    getDocumentsByClientId(profile.id),
-    getTicketsByClientId(profile.id),
-  ])
+  const [{ data: kyc }, { data: documents }, { data: tickets }] =
+    await Promise.all([
+      getKYCByClientId(profile.id),
+      getDocumentsByClientId(profile.id),
+      getTicketsByClientId(profile.id),
+    ])
 
   const verifiedDocs  = documents?.filter((d) => d.status === 'verified').length ?? 0
   const pendingDocs   = documents?.filter((d) => d.status === 'pending').length  ?? 0
@@ -45,12 +46,10 @@ export default async function PortalDashboardPage() {
 
       <div className="p-6 space-y-6">
 
-        {/* Onboarding banner */}
         {!onboardingComplete && (
           <OnboardingBanner step={profile.onboarding_step} />
         )}
 
-        {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="KYC Status"
@@ -77,8 +76,6 @@ export default async function PortalDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Onboarding checklist */}
           <Card className="lg:col-span-2">
             <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">
               Onboarding Checklist
@@ -130,7 +127,6 @@ export default async function PortalDashboardPage() {
             </div>
           </Card>
 
-          {/* Account info */}
           <Card>
             <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">
               Account Details
@@ -170,7 +166,6 @@ export default async function PortalDashboardPage() {
           </Card>
         </div>
 
-        {/* Recent tickets */}
         {recentTickets.length > 0 && (
           <Card>
             <div className="flex items-center justify-between mb-4">
@@ -198,11 +193,15 @@ export default async function PortalDashboardPage() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+type BannerConfig = {
+  title: string
+  body: string
+  href: string
+  cta: string
+}
+
 function OnboardingBanner({ step }: { step: number }) {
-  const messages: Record
-    number,
-    { title: string; body: string; href: string; cta: string }
-  > = {
+  const messages: Record<number, BannerConfig> = {
     0: {
       title: 'Complete your KYC verification',
       body: 'To activate your account, please complete your Know Your Customer profile.',
@@ -230,7 +229,10 @@ function OnboardingBanner({ step }: { step: number }) {
   }
 
   const config = messages[Math.min(step, 3)]
-  if (!config) return null
+
+  if (!config) {
+    return null
+  }
 
   return (
     <div className="rounded-lg border border-[var(--kfx-accent)]/20 bg-[var(--kfx-accent-muted)] p-4 flex items-center justify-between gap-4 flex-wrap">
@@ -332,7 +334,9 @@ function ChecklistItem({
     </div>
   )
 
-  if (locked || status === 'complete') return <div>{inner}</div>
+  if (locked || status === 'complete') {
+    return <div>{inner}</div>
+  }
   return <Link href={href}>{inner}</Link>
 }
 
@@ -345,7 +349,9 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-1.5 border-b border-[var(--kfx-border-subtle)] last:border-0">
-      <span className="text-xs text-[var(--kfx-text-muted)] shrink-0">{label}</span>
+      <span className="text-xs text-[var(--kfx-text-muted)] shrink-0">
+        {label}
+      </span>
       <span className="text-xs text-[var(--kfx-text)] text-right">{value}</span>
     </div>
   )

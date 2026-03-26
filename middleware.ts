@@ -1,11 +1,10 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export function middleware(req: NextRequest) {
-  if (req.nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL("/en", req.url));
-  }
-  return NextResponse.next();
+export function middleware(request: NextRequest) {
+  return NextResponse.next()
 }
 
-export const config = { matcher: "/" };
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}

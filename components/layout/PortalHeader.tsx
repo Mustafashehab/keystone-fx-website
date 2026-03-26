@@ -7,7 +7,12 @@ interface PortalHeaderProps {
   className?: string
 }
 
-export function PortalHeader({ title, subtitle, action, className }: PortalHeaderProps) {
+export function PortalHeader({
+  title,
+  subtitle,
+  action,
+  className,
+}: PortalHeaderProps) {
   return (
     <header
       className={cn(
@@ -24,14 +29,15 @@ export function PortalHeader({ title, subtitle, action, className }: PortalHeade
   )
 }
 
-// ─── Onboarding progress stepper ─────────────────────────────────────────────
-
 interface OnboardingProgressProps {
   currentStep: number
   steps: string[]
 }
 
-export function OnboardingProgress({ currentStep, steps }: OnboardingProgressProps) {
+export function OnboardingProgress({
+  currentStep,
+  steps,
+}: OnboardingProgressProps) {
   return (
     <div className="px-6 py-4 bg-[var(--kfx-surface)] border-b border-[var(--kfx-border)]">
       <div className="flex items-center">
@@ -42,7 +48,10 @@ export function OnboardingProgress({ currentStep, steps }: OnboardingProgressPro
           const isLast = i === steps.length - 1
 
           return (
-            <div key={label} className={cn('flex items-center', !isLast && 'flex-1')}>
+            <div
+              key={label}
+              className={cn('flex items-center', !isLast && 'flex-1')}
+            >
               <div className="flex items-center gap-2 shrink-0">
                 <div
                   className={cn(
@@ -55,8 +64,18 @@ export function OnboardingProgress({ currentStep, steps }: OnboardingProgressPro
                   )}
                 >
                   {isComplete ? (
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   ) : (
                     stepNum
@@ -89,8 +108,4 @@ export function OnboardingProgress({ currentStep, steps }: OnboardingProgressPro
       </div>
     </div>
   )
-}
-
-function cn(...classes: (string | undefined | false | null)[]): string {
-  return classes.filter(Boolean).join(' ')
 }
