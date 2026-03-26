@@ -3,107 +3,289 @@
 @tailwind utilities;
 
 /* =========================================================
-   BASE THEME
+   KEYSTONE FX — METALLIC LUXURY SYSTEM (FINAL)
    ========================================================= */
-
-body {
-  background: #f4f6f8;
-  color: #0b1220;
-}
 
 :root {
   --radius: 18px;
+
+  /* BACKGROUND */
+  --kfx-bg: #f5f6f8;
+  --kfx-bg-elevated: #ffffff;
+
+  /* SILVER SYSTEM */
+  --kfx-surface: #ffffff;
+  --kfx-surface-raised: #f1f3f6;
+  --kfx-surface-soft: #e8ecf1;
+
+  /* BORDERS */
+  --kfx-border: #d6dbe3;
+  --kfx-border-strong: #bfc6d2;
+  --kfx-border-subtle: #e5e9ef;
+
+  /* TEXT */
+  --kfx-text: #1e293b;
+  --kfx-text-muted: #6b7280;
+  --kfx-text-subtle: #9ca3af;
+
+  /* GOLD (REALISTIC) */
+  --kfx-gold-1: #f5d37a;
+  --kfx-gold-2: #d4af37;
+  --kfx-gold-3: #b8962e;
+  --kfx-gold-glow: rgba(212, 175, 55, 0.25);
+
+  /* SILVER GRADIENT */
+  --kfx-silver-gradient: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #eef1f5 45%,
+    #e3e7ee 100%
+  );
+
+  /* SHADOWS */
+  --kfx-shadow-soft: 0 6px 18px rgba(0,0,0,0.06);
+  --kfx-shadow-md: 0 12px 30px rgba(0,0,0,0.08);
+  --kfx-shadow-lg: 0 25px 60px rgba(0,0,0,0.12);
 }
 
 /* =========================================================
-   GENERIC CARD
+   BASE
    ========================================================= */
 
-.card {
+html {
+  color-scheme: light;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,0.9), transparent 40%),
+    linear-gradient(180deg, #f5f6f8 0%, #eef2f6 100%);
+  color: var(--kfx-text);
+  min-height: 100vh;
+  font-feature-settings: 'rlig' 1, 'calt' 1;
+}
+
+* {
+  border-color: var(--kfx-border-subtle);
+}
+
+::selection {
+  background: rgba(212, 175, 55, 0.25);
+  color: #000;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* SCROLLBAR */
+
+*::-webkit-scrollbar {
+  width: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =========================================================
+   PANELS / CARDS (METALLIC)
+   ========================================================= */
+
+.kfx-panel {
+  background: var(--kfx-silver-gradient);
+  border: 1px solid var(--kfx-border);
   border-radius: var(--radius);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.8),
+    0 10px 30px rgba(0,0,0,0.08);
+
+  transition: all 0.25s ease;
+}
+
+.kfx-panel:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 18px 45px rgba(0,0,0,0.12);
 }
 
 /* =========================================================
-   DATA FLOW ANIMATIONS
+   TYPOGRAPHY
    ========================================================= */
 
-/* Horizontal lane flow (left → right) */
-@keyframes data-flow {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(220%);
-  }
+.kfx-page-title {
+  font-size: clamp(1.6rem, 2vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
-/* Packet / dot movement (left → right) */
-@keyframes packet-flow {
-  from {
-    transform: translateX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  to {
-    transform: translateX(120vw);
-    opacity: 0;
-  }
+.kfx-page-subtitle {
+  font-size: 0.95rem;
+  color: var(--kfx-text-muted);
 }
 
-/* Packet / dot movement (right → left) */
-@keyframes packet-flow-reverse {
-  from {
-    transform: translateX(120vw);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  to {
-    transform: translateX(-20px);
-    opacity: 0;
-  }
+.kfx-section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
-/* Animation helpers */
-.animate-data-flow {
-  animation-name: data-flow;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-
-.animate-packet-flow {
-  animation-name: packet-flow;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-
-.animate-packet-flow-reverse {
-  animation-name: packet-flow-reverse;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+/* GOLD TEXT (ACCENT) */
+.kfx-accent-text {
+  background: linear-gradient(180deg, #f5d37a, #d4af37);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* =========================================================
-   METRICS PULSE ANIMATION
+   INPUTS (METALLIC)
    ========================================================= */
 
-@keyframes metric-pulse {
-  0% {
-    opacity: 0.2;
-    transform: translateX(-30%);
-  }
-  50% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 0.2;
-    transform: translateX(130%);
-  }
+.kfx-input {
+  width: 100%;
+  height: 46px;
+
+  border-radius: 14px;
+  border: 1px solid var(--kfx-border);
+
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #f1f3f6 100%
+  );
+
+  padding: 0 12px;
+  font-size: 0.9rem;
+
+  outline: none;
+  transition: all 0.2s ease;
+
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.animate-metric-pulse {
-  animation: metric-pulse 3.5s linear infinite;
+.kfx-input:hover {
+  border-color: var(--kfx-border-strong);
+}
+
+.kfx-input:focus {
+  border-color: var(--kfx-gold-2);
+
+  box-shadow:
+    0 0 0 3px rgba(212,175,55,0.15),
+    0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* =========================================================
+   BUTTONS (REAL GOLD)
+   ========================================================= */
+
+.kfx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 44px;
+  padding: 0 16px;
+
+  border-radius: 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+/* GOLD PRIMARY */
+.kfx-btn-primary {
+  background: linear-gradient(
+    180deg,
+    var(--kfx-gold-1) 0%,
+    var(--kfx-gold-2) 45%,
+    var(--kfx-gold-3) 100%
+  );
+
+  color: #1a1a1a;
+
+  border: 1px solid rgba(0,0,0,0.08);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.6),
+    0 8px 20px rgba(212,175,55,0.25);
+}
+
+.kfx-btn-primary:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    0 14px 30px rgba(212,175,55,0.35);
+}
+
+/* SECONDARY */
+.kfx-btn-secondary {
+  background: var(--kfx-silver-gradient);
+  border: 1px solid var(--kfx-border);
+}
+
+.kfx-btn-secondary:hover {
+  border-color: var(--kfx-border-strong);
+}
+
+/* =========================================================
+   BADGES
+   ========================================================= */
+
+.kfx-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.kfx-badge-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.kfx-badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.kfx-badge-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* =========================================================
+   MICRO INTERACTIONS
+   ========================================================= */
+
+.kfx-hover-lift {
+  transition: all 0.2s ease;
+}
+
+.kfx-hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.kfx-fade-in {
+  animation: kfxFade 0.35s ease;
+}
+
+@keyframes kfxFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
