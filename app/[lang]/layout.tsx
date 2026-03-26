@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Lang } from "@/lib/i18n";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
@@ -29,6 +30,21 @@ export default async function LangLayout({
       {children}
       <Footer lang={lang as Lang} />
       <WhatsAppButton />
+
+      {/* Google Analytics */}
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=G-35NDK9JRY6"
+        strategy="afterInteractive"
+      />
+
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-35NDK9JRY6');
+        `}
+      </Script>
     </>
   );
 }
