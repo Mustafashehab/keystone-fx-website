@@ -2,20 +2,35 @@
 
 import { useState, useEffect } from "react";
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 export default function WhatsAppButton() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Show button after page loads
     setIsVisible(true);
   }, []);
 
   const handleWhatsAppClick = () => {
-    // WhatsApp number for Keystone FX
-    const phoneNumber = "447511648370"; // UK number: +44 7511 648370
+    const phoneNumber = "447511648370";
     const message = "Hello! I'm interested in learning more about Keystone FX.";
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
+
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", "whatsapp_click", {
+        event_category: "engagement",
+        event_label: "floating_whatsapp_button",
+        value: 1,
+        page_location: window.location.href,
+        page_path: window.location.pathname,
+      });
+    }
+
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -26,12 +41,9 @@ export default function WhatsAppButton() {
       }`}
       aria-label="Contact us on WhatsApp"
     >
-      {/* Pulsing Ring Animation */}
       <div className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-75"></div>
-      
-      {/* Main Button */}
+
       <div className="relative flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full shadow-2xl hover:shadow-green-500/50 hover:scale-110 transition-all duration-300">
-        {/* WhatsApp Icon */}
         <svg
           className="w-9 h-9 text-white"
           fill="currentColor"
@@ -42,7 +54,6 @@ export default function WhatsAppButton() {
         </svg>
       </div>
 
-      {/* Tooltip on Hover */}
       <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
         <div className="bg-slate-900 text-white px-4 py-2 rounded-lg shadow-xl text-sm font-semibold">
           Chat with us on WhatsApp
