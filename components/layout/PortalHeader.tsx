@@ -16,15 +16,28 @@ export function PortalHeader({
   return (
     <header
       className={cn(
-        'flex items-start justify-between px-6 py-5 border-b border-[var(--kfx-border)] bg-[var(--kfx-surface)]',
+        'relative px-7 py-6 border-b border-[var(--kfx-border)] bg-[var(--kfx-bg-elevated)]',
         className
       )}
     >
-      <div>
-        <h1 className="kfx-page-title">{title}</h1>
-        {subtitle && <p className="kfx-page-subtitle">{subtitle}</p>}
+      {/* subtle silver glow */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_left,rgba(148,163,184,0.08),transparent_45%)]" />
+
+      <div className="relative flex items-start justify-between gap-6">
+        <div>
+          <h1 className="text-[26px] font-semibold tracking-tight text-[var(--kfx-text)]">
+            {title}
+          </h1>
+
+          {subtitle && (
+            <p className="text-[14px] text-[var(--kfx-text-muted)] mt-1.5 max-w-xl leading-relaxed">
+              {subtitle}
+            </p>
+          )}
+        </div>
+
+        {action && <div className="shrink-0">{action}</div>}
       </div>
-      {action && <div className="shrink-0 ml-4">{action}</div>}
     </header>
   )
 }
@@ -39,7 +52,7 @@ export function OnboardingProgress({
   steps,
 }: OnboardingProgressProps) {
   return (
-    <div className="px-6 py-4 bg-[var(--kfx-surface)] border-b border-[var(--kfx-border)]">
+    <div className="px-7 py-5 bg-[var(--kfx-bg-elevated)] border-b border-[var(--kfx-border)]">
       <div className="flex items-center">
         {steps.map((label, i) => {
           const stepNum = i + 1
@@ -55,17 +68,19 @@ export function OnboardingProgress({
               <div className="flex items-center gap-2 shrink-0">
                 <div
                   className={cn(
-                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
-                    isComplete
-                      ? 'bg-[var(--kfx-success)] text-white'
-                      : isActive
-                      ? 'bg-[var(--kfx-accent)] text-white ring-4 ring-[var(--kfx-accent-muted)]'
-                      : 'bg-[var(--kfx-surface-raised)] text-[var(--kfx-text-subtle)] border border-[var(--kfx-border)]'
+                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
+                    isComplete &&
+                      'bg-[var(--kfx-success)] text-white shadow-sm',
+                    isActive &&
+                      'bg-[#e2e8f0] text-[#0f172a] ring-4 ring-[#eef2f6]',
+                    !isComplete &&
+                      !isActive &&
+                      'bg-[var(--kfx-surface-raised)] text-[var(--kfx-text-subtle)] border border-[var(--kfx-border)]'
                   )}
                 >
                   {isComplete ? (
                     <svg
-                      className="w-3 h-3"
+                      className="w-3.5 h-3.5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -81,6 +96,7 @@ export function OnboardingProgress({
                     stepNum
                   )}
                 </div>
+
                 <span
                   className={cn(
                     'text-xs font-medium hidden sm:block whitespace-nowrap',
@@ -92,6 +108,7 @@ export function OnboardingProgress({
                   {label}
                 </span>
               </div>
+
               {!isLast && (
                 <div
                   className={cn(

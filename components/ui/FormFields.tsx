@@ -9,6 +9,8 @@ type BaseFieldProps = {
   hint?: string
 }
 
+/* ================= INPUT ================= */
+
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> &
   BaseFieldProps & {
     prefix?: React.ReactNode
@@ -20,11 +22,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-[var(--kfx-text)]"
+            className="text-[13px] font-medium text-[var(--kfx-text)]"
           >
             {label}
           </label>
@@ -41,11 +43,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              'w-full rounded-lg border border-[var(--kfx-border)] bg-[var(--kfx-surface)] px-3 py-2 text-sm text-[var(--kfx-text)] outline-none transition',
-              'focus:border-[var(--kfx-accent)] focus:ring-2 focus:ring-[var(--kfx-accent)]/20',
+              'w-full h-[46px] rounded-xl border bg-white px-3 text-sm text-[var(--kfx-text)] outline-none transition-all',
+              'border-[#e2e8f0]',
+              'shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)]',
+              'focus:border-[#94a3b8] focus:ring-4 focus:ring-[#eef2f6] focus:shadow-[0_6px_20px_rgba(15,23,42,0.08)]',
+              'hover:border-[#cbd5e1]',
               prefix && 'pl-10',
               suffix && 'pr-10',
-              error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+              error && 'border-red-400 focus:ring-red-100',
               className
             )}
             {...props}
@@ -70,6 +75,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
 Input.displayName = 'Input'
 
+/* ================= TEXTAREA ================= */
+
 type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
   BaseFieldProps
 
@@ -78,11 +85,11 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-[var(--kfx-text)]"
+            className="text-[13px] font-medium text-[var(--kfx-text)]"
           >
             {label}
           </label>
@@ -92,9 +99,12 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full rounded-lg border border-[var(--kfx-border)] bg-[var(--kfx-surface)] px-3 py-2 text-sm text-[var(--kfx-text)] outline-none transition',
-            'focus:border-[var(--kfx-accent)] focus:ring-2 focus:ring-[var(--kfx-accent)]/20',
-            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+            'w-full min-h-[110px] rounded-xl border bg-white px-3 py-2 text-sm text-[var(--kfx-text)] outline-none transition-all',
+            'border-[#e2e8f0]',
+            'shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)]',
+            'focus:border-[#94a3b8] focus:ring-4 focus:ring-[#eef2f6] focus:shadow-[0_6px_20px_rgba(15,23,42,0.08)]',
+            'hover:border-[#cbd5e1]',
+            error && 'border-red-400 focus:ring-red-100',
             className
           )}
           {...props}
@@ -111,6 +121,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 )
 
 Textarea.displayName = 'Textarea'
+
+/* ================= SELECT ================= */
 
 type SelectOption = {
   label: string
@@ -129,11 +141,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-[var(--kfx-text)]"
+            className="text-[13px] font-medium text-[var(--kfx-text)]"
           >
             {label}
           </label>
@@ -143,20 +155,19 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full rounded-lg border border-[var(--kfx-border)] bg-[var(--kfx-surface)] px-3 py-2 text-sm text-[var(--kfx-text)] outline-none transition',
-            'focus:border-[var(--kfx-accent)] focus:ring-2 focus:ring-[var(--kfx-accent)]/20',
-            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+            'w-full h-[46px] rounded-xl border bg-white px-3 text-sm text-[var(--kfx-text)] outline-none transition-all',
+            'border-[#e2e8f0]',
+            'shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)]',
+            'focus:border-[#94a3b8] focus:ring-4 focus:ring-[#eef2f6]',
+            'hover:border-[#cbd5e1]',
+            error && 'border-red-400 focus:ring-red-100',
             className
           )}
           {...props}
         >
           {placeholder && <option value="">{placeholder}</option>}
           {options.map((option) => (
-            <option
-              key={option.value}
-              value={option.value}
-              disabled={option.disabled}
-            >
+            <option key={option.value} value={option.value} disabled={option.disabled}>
               {option.label}
             </option>
           ))}
@@ -174,6 +185,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 
 Select.displayName = 'Select'
 
+/* ================= CHECKBOX ================= */
+
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement> &
   BaseFieldProps & {
     description?: string
@@ -184,7 +197,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <label
           htmlFor={inputId}
           className="flex items-start gap-3 text-sm text-[var(--kfx-text)]"
@@ -194,15 +207,17 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             id={inputId}
             type="checkbox"
             className={cn(
-              'mt-1 h-4 w-4 rounded border-[var(--kfx-border)]',
+              'mt-1 h-4 w-4 rounded border border-[#cbd5e1] bg-white',
+              'focus:ring-2 focus:ring-[#94a3b8]',
               className
             )}
             {...props}
           />
+
           <span>
             {label && <span className="font-medium">{label}</span>}
             {description && (
-              <span className="mt-0.5 block text-xs text-[var(--kfx-text-muted)]">
+              <span className="block text-xs text-[var(--kfx-text-muted)] mt-0.5">
                 {description}
               </span>
             )}
