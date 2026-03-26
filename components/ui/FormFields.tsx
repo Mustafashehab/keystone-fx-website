@@ -1,230 +1,218 @@
 'use client'
 
-import { forwardRef } from 'react'
+import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-// ─── Input ────────────────────────────────────────────────────────────────────
-
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+type BaseFieldProps = {
   label?: string
   error?: string
   hint?: string
-  prefix?: React.ReactNode
-  suffix?: React.ReactNode
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, prefix, suffix, className, id, ...props }, ref) => {
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+type InputProps = React.InputHTMLAttributes<HTMLInputElement> &
+  BaseFieldProps & {
+    prefix?: React.ReactNode
+    suffix?: React.ReactNode
+  }
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, hint, className, id, prefix, suffix, ...props }, ref) => {
+    const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="w-full">
+      <div className="space-y-1.5">
         {label && (
-          <label htmlFor={inputId} className="kfx-label">
+          <label
+            htmlFor={inputId}
+            className="block text-sm font-medium text-[var(--kfx-text)]"
+          >
             {label}
-            {props.required && <span className="text-[var(--kfx-danger)] ml-1">*</span>}
           </label>
         )}
+
         <div className="relative">
           {prefix && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--kfx-text-muted)]">
               {prefix}
             </div>
           )}
+
           <input
             ref={ref}
             id={inputId}
             className={cn(
-              'kfx-input',
-              prefix && 'pl-9',
-              suffix && 'pr-9',
-              error && 'border-[var(--kfx-danger)] focus:ring-[var(--kfx-danger)]',
+              'w-full rounded-lg border border-[var(--kfx-border)] bg-[var(--kfx-surface)] px-3 py-2 text-sm text-[var(--kfx-text)] outline-none transition',
+              'focus:border-[var(--kfx-accent)] focus:ring-2 focus:ring-[var(--kfx-accent)]/20',
+              prefix && 'pl-10',
+              suffix && 'pr-10',
+              error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
               className
             )}
             {...props}
           />
+
           {suffix && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--kfx-text-muted)]">
               {suffix}
             </div>
           )}
         </div>
-        {error && <p className="mt-1.5 text-xs text-[var(--kfx-danger)]">{error}</p>}
-        {!error && hint && <p className="mt-1.5 text-xs text-[var(--kfx-text-muted)]">{hint}</p>}
+
+        {error ? (
+          <p className="text-xs text-red-500">{error}</p>
+        ) : hint ? (
+          <p className="text-xs text-[var(--kfx-text-muted)]">{hint}</p>
+        ) : null}
       </div>
     )
   }
 )
+
 Input.displayName = 'Input'
 
-// ─── Textarea ─────────────────────────────────────────────────────────────────
+type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
+  BaseFieldProps
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string
-  error?: string
-  hint?: string
-}
-
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ label, error, hint, className, id, ...props }, ref) => {
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+    const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="w-full">
+      <div className="space-y-1.5">
         {label && (
-          <label htmlFor={inputId} className="kfx-label">
+          <label
+            htmlFor={inputId}
+            className="block text-sm font-medium text-[var(--kfx-text)]"
+          >
             {label}
-            {props.required && <span className="text-[var(--kfx-danger)] ml-1">*</span>}
           </label>
         )}
+
         <textarea
           ref={ref}
           id={inputId}
-          rows={4}
           className={cn(
-            'kfx-input resize-none',
-            error && 'border-[var(--kfx-danger)] focus:ring-[var(--kfx-danger)]',
+            'w-full rounded-lg border border-[var(--kfx-border)] bg-[var(--kfx-surface)] px-3 py-2 text-sm text-[var(--kfx-text)] outline-none transition',
+            'focus:border-[var(--kfx-accent)] focus:ring-2 focus:ring-[var(--kfx-accent)]/20',
+            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1.5 text-xs text-[var(--kfx-danger)]">{error}</p>}
-        {!error && hint && <p className="mt-1.5 text-xs text-[var(--kfx-text-muted)]">{hint}</p>}
+
+        {error ? (
+          <p className="text-xs text-red-500">{error}</p>
+        ) : hint ? (
+          <p className="text-xs text-[var(--kfx-text-muted)]">{hint}</p>
+        ) : null}
       </div>
     )
   }
 )
+
 Textarea.displayName = 'Textarea'
 
-// ─── Select ───────────────────────────────────────────────────────────────────
-
-interface SelectOption {
+type SelectOption = {
   label: string
   value: string
   disabled?: boolean
 }
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string
-  error?: string
-  hint?: string
-  options: SelectOption[]
-  placeholder?: string
-}
+type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> &
+  BaseFieldProps & {
+    options: SelectOption[]
+    placeholder?: string
+  }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, hint, options, placeholder, className, id, ...props }, ref) => {
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
+  ({ label, error, hint, className, id, options, placeholder, ...props }, ref) => {
+    const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="w-full">
+      <div className="space-y-1.5">
         {label && (
-          <label htmlFor={inputId} className="kfx-label">
+          <label
+            htmlFor={inputId}
+            className="block text-sm font-medium text-[var(--kfx-text)]"
+          >
             {label}
-            {props.required && <span className="text-[var(--kfx-danger)] ml-1">*</span>}
           </label>
         )}
+
         <select
           ref={ref}
           id={inputId}
           className={cn(
-            'kfx-input appearance-none cursor-pointer',
-            error && 'border-[var(--kfx-danger)] focus:ring-[var(--kfx-danger)]',
+            'w-full rounded-lg border border-[var(--kfx-border)] bg-[var(--kfx-surface)] px-3 py-2 text-sm text-[var(--kfx-text)] outline-none transition',
+            'focus:border-[var(--kfx-accent)] focus:ring-2 focus:ring-[var(--kfx-accent)]/20',
+            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
             className
           )}
           {...props}
         >
-          {placeholder && (
-            <option value="" disabled>
-              {placeholder}
-            </option>
-          )}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
-              {opt.label}
+          {placeholder && <option value="">{placeholder}</option>}
+          {options.map((option) => (
+            <option
+              key={option.value}
+              value={option.value}
+              disabled={option.disabled}
+            >
+              {option.label}
             </option>
           ))}
         </select>
-        {error && <p className="mt-1.5 text-xs text-[var(--kfx-danger)]">{error}</p>}
-        {!error && hint && <p className="mt-1.5 text-xs text-[var(--kfx-text-muted)]">{hint}</p>}
+
+        {error ? (
+          <p className="text-xs text-red-500">{error}</p>
+        ) : hint ? (
+          <p className="text-xs text-[var(--kfx-text-muted)]">{hint}</p>
+        ) : null}
       </div>
     )
   }
 )
+
 Select.displayName = 'Select'
 
-// ─── Checkbox ─────────────────────────────────────────────────────────────────
+type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement> &
+  BaseFieldProps & {
+    description?: string
+  }
 
-interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string
-  description?: string
-  error?: string
-}
-
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
+export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, description, error, className, id, ...props }, ref) => {
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+    const inputId = id ?? props.name ?? undefined
 
     return (
-      <div className="flex items-start gap-3">
-        <input
-          ref={ref}
-          type="checkbox"
-          id={inputId}
-          className={cn(
-            'mt-0.5 h-4 w-4 rounded border-[var(--kfx-border)] bg-[var(--kfx-surface-raised)]',
-            'accent-[var(--kfx-accent)] cursor-pointer',
-            'focus:ring-2 focus:ring-[var(--kfx-accent)] focus:ring-offset-[var(--kfx-bg)]',
-            error && 'border-[var(--kfx-danger)]',
-            className
-          )}
-          {...props}
-        />
-        {(label || description) && (
-          <div>
-            {label && (
-              <label htmlFor={inputId} className="text-sm text-[var(--kfx-text)] cursor-pointer">
-                {label}
-              </label>
+      <div className="space-y-1.5">
+        <label
+          htmlFor={inputId}
+          className="flex items-start gap-3 text-sm text-[var(--kfx-text)]"
+        >
+          <input
+            ref={ref}
+            id={inputId}
+            type="checkbox"
+            className={cn(
+              'mt-1 h-4 w-4 rounded border-[var(--kfx-border)]',
+              className
             )}
+            {...props}
+          />
+          <span>
+            {label && <span className="font-medium">{label}</span>}
             {description && (
-              <p className="text-xs text-[var(--kfx-text-muted)] mt-0.5">{description}</p>
+              <span className="mt-0.5 block text-xs text-[var(--kfx-text-muted)]">
+                {description}
+              </span>
             )}
-            {error && <p className="mt-1 text-xs text-[var(--kfx-danger)]">{error}</p>}
-          </div>
-        )}
+          </span>
+        </label>
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
     )
   }
 )
+
 Checkbox.displayName = 'Checkbox'
-
-// ─── FormField wrapper ────────────────────────────────────────────────────────
-
-export function FormField({
-  label,
-  required,
-  error,
-  hint,
-  children,
-}: {
-  label?: string
-  required?: boolean
-  error?: string
-  hint?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="w-full">
-      {label && (
-        <p className="kfx-label">
-          {label}
-          {required && <span className="text-[var(--kfx-danger)] ml-1">*</span>}
-        </p>
-      )}
-      {children}
-      {error && <p className="mt-1.5 text-xs text-[var(--kfx-danger)]">{error}</p>}
-      {!error && hint && <p className="mt-1.5 text-xs text-[var(--kfx-text-muted)]">{hint}</p>}
-    </div>
-  )
-}
