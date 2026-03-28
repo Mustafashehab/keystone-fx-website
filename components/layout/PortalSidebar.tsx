@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -15,46 +16,37 @@ const DashboardIcon = () => (
     <path strokeWidth={1.75} d="M3 12l2-2 7-7 7 7 2 2M5 10v10h3m8-10v10h-3M9 21v-6h6v6" />
   </svg>
 )
-
 const KYCIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeWidth={1.75} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
   </svg>
 )
-
 const DocumentIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeWidth={1.75} d="M9 12h6m-6 4h6M7 3h6l5 5v13H7z" />
   </svg>
 )
-
 const AccountIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeWidth={1.75} d="M9 5H7a2 2 0 00-2 2v12h14V7a2 2 0 00-2-2h-2M9 5h6" />
   </svg>
 )
-
 const SupportIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <circle cx="12" cy="12" r="9" strokeWidth={1.75} />
     <path strokeWidth={1.75} d="M9 10h.01M15 10h.01M9 15h6" />
   </svg>
 )
-
 const DepositIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-      d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
   </svg>
 )
-
 const WithdrawIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-      d="M12 20V8m0 0l-4 4m4-4l4 4M4 4h16" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 20V8m0 0l-4 4m4-4l4 4M4 4h16" />
   </svg>
 )
-
 const SettingsIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <circle cx="12" cy="12" r="3" strokeWidth={1.75} />
@@ -84,16 +76,28 @@ interface PortalSidebarProps {
 
 export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarProps) {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
 
-  return (
-    <aside className="w-64 flex flex-col h-screen sticky top-0 bg-white border-r border-[#e5e7eb]">
-      <div className="px-6 py-6 border-b border-[#eef2f6]">
-        <p className="text-sm font-semibold text-[#0f172a]">
-          Keystone <span className="text-[#94a3b8]">FX</span>
-        </p>
-        <p className="text-[10px] text-[#94a3b8] tracking-widest uppercase mt-1">
-          Client Portal
-        </p>
+  const sidebarContent = (
+    <>
+      <div className="px-6 py-6 border-b border-[#eef2f6] flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-[#0f172a]">
+            Keystone <span className="text-[#94a3b8]">FX</span>
+          </p>
+          <p className="text-[10px] text-[#94a3b8] tracking-widest uppercase mt-1">
+            Client Portal
+          </p>
+        </div>
+        {/* Close button — mobile only */}
+        <button
+          className="md:hidden p-1.5 rounded-lg text-[#64748b] hover:bg-[#f1f5f9]"
+          onClick={() => setOpen(false)}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
@@ -102,13 +106,19 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
             key={item.href}
             item={item}
             active={pathname === item.href || pathname.startsWith(item.href + '/')}
+            onClick={() => setOpen(false)}
           />
         ))}
       </nav>
 
       <div className="px-3 space-y-1 pb-3">
         {BOTTOM_ITEMS.map((item) => (
-          <NavLink key={item.href} item={item} active={pathname === item.href} />
+          <NavLink
+            key={item.href}
+            item={item}
+            active={pathname === item.href}
+            onClick={() => setOpen(false)}
+          />
         ))}
       </div>
 
@@ -121,16 +131,54 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Hamburger button — mobile only, top left */}
+      <button
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-white border border-[#e5e7eb] shadow-sm text-[#0f172a]"
+        onClick={() => setOpen(true)}
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Overlay — mobile only */}
+      {open && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/40"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — desktop: always visible, mobile: slide in */}
+      <aside className={cn(
+        'flex flex-col h-screen bg-white border-r border-[#e5e7eb] z-50 transition-transform duration-300',
+        // Desktop
+        'md:relative md:w-64 md:translate-x-0 md:sticky md:top-0',
+        // Mobile
+        'fixed top-0 left-0 w-72',
+        open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      )}>
+        {sidebarContent}
+      </aside>
+    </>
   )
 }
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
   return (
-    <Link href={item.href}
+    <Link
+      href={item.href}
+      onClick={onClick}
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
-        active ? 'bg-[#eef2f6] text-[#0f172a] font-medium' : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
+        active
+          ? 'bg-[#eef2f6] text-[#0f172a] font-medium'
+          : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
       )}>
       <span className={cn(active ? 'text-[#0f172a]' : 'text-[#94a3b8]')}>{item.icon}</span>
       <span>{item.label}</span>
