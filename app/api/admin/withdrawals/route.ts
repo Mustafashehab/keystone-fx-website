@@ -93,8 +93,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (status === 'approved') {
-      // ATTESTATION CHECK: Admin must have submitted a fresh MT5 balance attestation
+      // ATTESTATION CHECK: Admin must have submitted a fresh MT5 free margin attestation
       // within the last 5 minutes before approving.
+      // Free margin = funds available after open positions and margin requirements.
       const { data: attestation, error: attestFetchError } = await supabase
         .from('withdrawal_attestations')
         .select('id, attested_balance, attested_at, used')
@@ -105,7 +106,7 @@ export async function PATCH(req: NextRequest) {
       if (attestFetchError || !attestation) {
         return NextResponse.json(
           {
-            error: 'MT5 balance attestation required. Please verify the client\'s MT5 balance in your terminal and submit an attestation before approving.',
+            error: 'MT5 free margin attestation required. Please check the client\'s free margin in your MT5 Manager Terminal and submit an attestation before approving.',
             code: 'attestation_missing',
           },
           { status: 400 }
@@ -115,7 +116,7 @@ export async function PATCH(req: NextRequest) {
       if (attestation.used) {
         return NextResponse.json(
           {
-            error: 'This attestation has already been used. Please re-attest the MT5 balance before approving.',
+            error: 'This attestation has already been used. Please re-attest the MT5 free margin before approving.',
             code: 'attestation_used',
           },
           { status: 400 }
@@ -129,7 +130,7 @@ export async function PATCH(req: NextRequest) {
         const minutesAgo = Math.floor(ageMs / 60000)
         return NextResponse.json(
           {
-            error: `Attestation expired. It was submitted ${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago and is only valid for 5 minutes. Please re-attest the MT5 balance.`,
+            error: `Attestation expired. It was submitted ${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago and is only valid for 5 minutes. Please re-attest the MT5 free margin.`,
             code: 'attestation_expired',
             attestedAt: attestation.attested_at,
           },
@@ -148,7 +149,6 @@ export async function PATCH(req: NextRequest) {
       })
 
       if (rpcError) {
-        // Parse specific error codes from the rpc function
         if (rpcError.message?.includes('withdrawal_not_pending')) {
           return NextResponse.json(
             { error: 'This withdrawal was already processed by another admin.' },
@@ -157,7 +157,7 @@ export async function PATCH(req: NextRequest) {
         }
         if (rpcError.message?.includes('attestation_expired')) {
           return NextResponse.json(
-            { error: 'Attestation expired during approval. Please re-attest.' },
+            { error: 'Attestation expired during approval. Please re-attest the MT5 free margin.' },
             { status: 400 }
           )
         }
