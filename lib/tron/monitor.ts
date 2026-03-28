@@ -13,17 +13,17 @@ function getServiceClient() {
 export async function checkWalletDeposits(
   clientId: string,
   walletAddress: string
-): Promise<{ newDeposits: number; error: string | null }> {
+): Promise<{ newDeposits: number; totalNewAmount: number; error: string | null }> {
   try {
     const supabase = getServiceClient()
 
     const { data: wallet } = await supabase
       .from('client_wallets')
-      .select('id')
+      .select('id, usdt_balance, total_deposited')
       .eq('client_id', clientId)
       .single()
 
-    if (!wallet) return { newDeposits: 0, error: 'Wallet not found' }
+    if (!wallet) return { newDeposits: 0, totalNewAmount: 0, error: 'Wallet not found' }
 
     const response = await fetch(
       `https://api.trongrid.io/v1/accounts/${walletAddress}/transactions/trc20?contract_address=${TRON_CONFIG.usdtContract}&limit=20&only_confirmed=true`,
@@ -36,7 +36,10 @@ export async function checkWalletDeposits(
     const transactions = data.data ?? []
 
     let newDeposits = 0
+    let totalNewAmount = 0
 
+    // First pass: collect all new transactions
+    const newTxs: { txHash: string; amount: number }[] = []
     for (const tx of transactions) {
       if (tx.to !== walletAddress) continue
 
@@ -49,38 +52,64 @@ export async function checkWalletDeposits(
         .eq('tx_hash', txHash)
         .maybeSingle()
 
-      if (existing) continue
+      if (!existing) {
+        newTxs.push({ txHash, amount })
+        totalNewAmount += amount
+      }
+    }
 
-      await supabase.from('deposit_transactions').insert({
-        client_id: clientId,
-        wallet_id: wallet.id,
-        tx_hash:   txHash,
-        amount,
-        status:    'detected',
-      })
-
+    if (newTxs.length === 0) {
+      // No new deposits — just update last_checked_at
       await supabase
         .from('client_wallets')
-        .update({
-          usdt_balance:    amount,
-          total_deposited: amount,
-          last_checked_at: new Date().toISOString(),
-          updated_at:      new Date().toISOString(),
-        })
+        .update({ last_checked_at: new Date().toISOString() })
         .eq('client_id', clientId)
+      return { newDeposits: 0, totalNewAmount: 0, error: null }
+    }
+
+    // Second pass: record each new deposit atomically via rpc
+    // Each call to record_deposit_detected:
+    //   - inserts deposit_transactions row
+    //   - updates client_wallets balance
+    //   - inserts financial_events row
+    // All three happen in one Postgres transaction per deposit.
+    let runningBalance = Number(wallet.usdt_balance ?? 0)
+    let runningTotal   = Number(wallet.total_deposited ?? 0)
+
+    for (const { txHash, amount } of newTxs) {
+      runningBalance += amount
+      runningTotal   += amount
+
+      const { error: rpcError } = await supabase.rpc('record_deposit_detected', {
+        p_client_id:   clientId,
+        p_wallet_id:   wallet.id,
+        p_tx_hash:     txHash,
+        p_amount:      amount,
+        p_new_balance: runningBalance,
+        p_new_total:   runningTotal,
+      })
+
+      if (rpcError) {
+        // If tx_hash already exists (race condition), the unique constraint catches it.
+        // Log and continue — don't count this deposit.
+        if (rpcError.message?.includes('unique') || rpcError.message?.includes('duplicate')) {
+          console.warn(`[monitor] Duplicate deposit skipped: ${txHash}`)
+          runningBalance -= amount
+          runningTotal   -= amount
+          continue
+        }
+        console.error(`[monitor] Failed to record deposit ${txHash}:`, rpcError.message)
+        continue
+      }
 
       newDeposits++
     }
 
-    await supabase
-      .from('client_wallets')
-      .update({ last_checked_at: new Date().toISOString() })
-      .eq('client_id', clientId)
-
-    return { newDeposits, error: null }
+    return { newDeposits, totalNewAmount, error: null }
   } catch (err: unknown) {
     return {
       newDeposits: 0,
+      totalNewAmount: 0,
       error: err instanceof Error ? err.message : 'Monitor failed',
     }
   }

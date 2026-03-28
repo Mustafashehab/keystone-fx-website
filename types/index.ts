@@ -16,6 +16,11 @@ export type DocumentType      =
   | 'corporate_document'
   | 'other'
 
+// Financial entity status types — typed strictly so 'string' is never used for financial state
+export type WithdrawalStatus      = 'pending' | 'approved' | 'rejected' | 'cancelled'
+export type DepositStatus         = 'detected' | 'swept'
+export type SweepStatus           = 'pending' | 'confirmed' | 'failed'
+
 export interface User {
   id: string
   email: string
@@ -146,6 +151,57 @@ export interface TicketMessage {
   created_at: string
 }
 
+// ─── Financial Entities ────────────────────────────────────────────────────────
+
+export interface WithdrawalRequest {
+  id: string
+  client_id: string
+  amount: number
+  wallet_address: string
+  mt5_account: string | null
+  status: WithdrawalStatus
+  rejection_reason: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Used in admin views where client name is joined
+export interface WithdrawalRequestWithClient extends WithdrawalRequest {
+  client_profiles: {
+    first_name: string
+    last_name: string
+  } | null
+}
+
+export interface DepositTransaction {
+  id: string
+  client_id: string
+  wallet_id: string
+  tx_hash: string
+  amount: number
+  status: DepositStatus
+  swept_at: string | null
+  sweep_tx_hash: string | null
+  created_at: string
+}
+
+export interface ClientWallet {
+  id: string
+  client_id: string
+  tron_address: string
+  encrypted_private_key: string
+  usdt_balance: number
+  total_deposited: number
+  sweep_locked: boolean
+  last_checked_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ─── Shared Response Wrappers ──────────────────────────────────────────────────
+
 export interface ApiResponse<T = void> {
   data: T | null
   error: string | null
@@ -157,6 +213,8 @@ export interface PaginatedResponse<T> {
   page: number
   pageSize: number
 }
+
+// ─── Composite / View Types ────────────────────────────────────────────────────
 
 export interface ClientSummary {
   id: string
