@@ -43,6 +43,13 @@ const DocumentsIcon = () => (
   </svg>
 )
 
+const WithdrawalsIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+      d="M12 20V8m0 0l-4 4m4-4l4 4M4 4h16" />
+  </svg>
+)
+
 const LeadsIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
@@ -76,9 +83,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Client Management',
     items: [
-      { label: 'Clients',    href: '/admin/clients',   icon: <ClientsIcon /> },
-      { label: 'KYC Review', href: '/admin/kyc',       icon: <KYCIcon /> },
-      { label: 'Documents',  href: '/admin/documents', icon: <DocumentsIcon /> },
+      { label: 'Clients',      href: '/admin/clients',      icon: <ClientsIcon /> },
+      { label: 'KYC Review',   href: '/admin/kyc',          icon: <KYCIcon /> },
+      { label: 'Documents',    href: '/admin/documents',    icon: <DocumentsIcon /> },
+      { label: 'Withdrawals',  href: '/admin/withdrawals',  icon: <WithdrawalsIcon /> },
     ],
   },
   {
@@ -90,13 +98,6 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
-const GOLD = 'var(--kfx-gold)'
-const GOLD_10 = 'rgba(201,168,76,0.10)'
-const GOLD_12 = 'rgba(201,168,76,0.12)'
-const GOLD_40 = 'rgba(201,168,76,0.40)'
-const GOLD_50 = 'rgba(201,168,76,0.50)'
-const SURFACE_HOVER = 'rgba(255,255,255,0.03)'
-
 interface AdminSidebarProps {
   adminName: string
   adminEmail: string
@@ -107,57 +108,38 @@ export function AdminSidebar({ adminName, adminEmail, onSignOut }: AdminSidebarP
   const pathname = usePathname()
 
   return (
-    <aside
-      className="w-56 shrink-0 flex flex-col h-screen sticky top-0 border-r"
-      style={{
-        background: 'linear-gradient(180deg, #0d1117 0%, #0a0e14 100%)',
-        borderColor: GOLD_12,
-      }}
-    >
-      {/* Logo */}
-      <div
-        className="flex items-center gap-2.5 px-4 py-5 border-b"
-        style={{ borderColor: GOLD_12 }}
-      >
-        <div
-          className="w-7 h-7 rounded flex items-center justify-center shrink-0"
-          style={{ background: GOLD }}
-        >
-          <span className="text-[#0a0c0f] text-xs font-bold">K</span>
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-[var(--kfx-text)] leading-tight tracking-tight">
-            Keystone <span style={{ color: GOLD }}>FX</span>
-          </p>
-          <p
-            className="text-[10px] tracking-widest uppercase font-medium"
-            style={{ color: GOLD_50 }}
-          >
-            Admin Console
-          </p>
-        </div>
+    <aside className="w-64 flex flex-col h-screen sticky top-0 bg-white border-r border-[#e5e7eb]">
+      <div className="px-6 py-6 border-b border-[#eef2f6]">
+        <p className="text-sm font-semibold text-[#0f172a]">
+          Keystone <span className="text-[#94a3b8]">FX</span>
+        </p>
+        <p className="text-[10px] text-[#94a3b8] tracking-widest uppercase mt-1">
+          Admin Console
+        </p>
       </div>
 
-      {/* Nav groups */}
-      <nav className="flex-1 px-2 py-4 space-y-5 overflow-y-auto">
+      <nav className="flex-1 px-3 py-5 space-y-5 overflow-y-auto">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <p
-              className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: GOLD_40 }}
-            >
+            <p className="px-3 pb-2 text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest">
               {group.label}
             </p>
             <div className="space-y-0.5">
               {group.items.map((item) => {
-                const isActive =
-                  pathname === item.href || pathname.startsWith(item.href + '/')
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
-                  <AdminNavLink
-                    key={item.href}
-                    item={item}
-                    isActive={isActive}
-                  />
+                  <Link key={item.href} href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
+                      isActive
+                        ? 'bg-[#eef2f6] text-[#0f172a] font-medium'
+                        : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
+                    )}>
+                    <span className={cn(isActive ? 'text-[#0f172a]' : 'text-[#94a3b8]')}>
+                      {item.icon}
+                    </span>
+                    <span>{item.label}</span>
+                  </Link>
                 )
               })}
             </div>
@@ -165,93 +147,31 @@ export function AdminSidebar({ adminName, adminEmail, onSignOut }: AdminSidebarP
         ))}
       </nav>
 
-      {/* Bottom */}
-      <div
-        className="px-2 pb-3 pt-3 border-t space-y-0.5"
-        style={{ borderColor: GOLD_12 }}
-      >
-        <Link
-          href="/admin/settings"
+      <div className="px-3 pb-3">
+        <Link href="/admin/settings"
           className={cn(
-            'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors',
+            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
             pathname === '/admin/settings'
-              ? 'text-[var(--kfx-gold)]'
-              : 'text-[var(--kfx-text-muted)] hover:text-[var(--kfx-text)]'
-          )}
-        >
-          <SettingsIcon />
+              ? 'bg-[#eef2f6] text-[#0f172a] font-medium'
+              : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
+          )}>
+          <span className={cn(pathname === '/admin/settings' ? 'text-[#0f172a]' : 'text-[#94a3b8]')}>
+            <SettingsIcon />
+          </span>
           <span>Settings</span>
         </Link>
+      </div>
 
-        {/* Admin user card */}
-        <div
-          className="mt-1 p-2.5 rounded-lg border"
-          style={{ background: GOLD_10, borderColor: GOLD_12 }}
-        >
-          <div className="flex items-center gap-2">
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-              style={{ background: GOLD, color: '#0a0c0f' }}
-            >
-              {adminName[0]?.toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[var(--kfx-text)] truncate">
-                {adminName}
-              </p>
-              <p className="text-[10px] truncate" style={{ color: GOLD_50 }}>
-                Administrator
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onSignOut}
-            className="mt-2 text-[11px] text-[var(--kfx-text-muted)] hover:text-[var(--kfx-danger)] transition-colors"
-          >
+      <div className="px-4 pb-5 border-t border-[#eef2f6] pt-4">
+        <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e5e7eb]">
+          <p className="text-xs text-[#0f172a] font-medium truncate">{adminName}</p>
+          <p className="text-[11px] text-[#64748b] truncate mt-0.5">{adminEmail}</p>
+          <button onClick={onSignOut}
+            className="mt-3 text-[11px] text-[#64748b] hover:text-red-500 transition">
             Sign out
           </button>
         </div>
       </div>
     </aside>
-  )
-}
-
-function AdminNavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
-  return (
-    <Link
-      href={item.href}
-      className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-all duration-150 relative group"
-      style={{
-        color: isActive ? GOLD : undefined,
-        background: isActive ? GOLD_10 : undefined,
-      }}
-      onMouseEnter={(e) => {
-        if (!isActive) e.currentTarget.style.background = SURFACE_HOVER
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) e.currentTarget.style.background = ''
-      }}
-    >
-      {isActive && (
-        <span
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r"
-          style={{ background: GOLD }}
-        />
-      )}
-      <span
-        className={cn(
-          'shrink-0 transition-colors',
-          !isActive && 'text-[var(--kfx-text-subtle)] group-hover:text-[var(--kfx-text-muted)]'
-        )}
-        style={isActive ? { color: GOLD } : undefined}
-      >
-        {item.icon}
-      </span>
-      <span
-        className={cn(!isActive && 'text-[var(--kfx-text-muted)] group-hover:text-[var(--kfx-text)]')}
-      >
-        {item.label}
-      </span>
-    </Link>
   )
 }

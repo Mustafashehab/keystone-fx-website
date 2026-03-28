@@ -39,7 +39,7 @@ export const kycSchema = z.object({
   politicallyExposed:   z.boolean(),
   pepDetails:           z.string().optional(),
   usPerson:             z.boolean(),
-  taxResidency:         z.string().min(1, 'Required'),
+  taxResidency:         z.string().optional(),
   taxIdNumber:          z.string().optional(),
 })
 
@@ -48,7 +48,7 @@ export const accountApplicationSchema = z.object({
   leveragePreference:   z.string().min(1, 'Required'),
   baseCurrency:         z.string().min(1, 'Required'),
   platformPreference:   z.string().min(1, 'Required'),
-  initialDepositAmount: z.number().positive('Must be a positive amount'),
+  initialDepositAmount: z.number().min(1, 'Must be a positive amount'),
 })
 
 export const ticketSchema = z.object({
@@ -72,10 +72,10 @@ export const leadSchema = z.object({
   notes:     z.string().optional(),
 })
 
-export type LoginFormData               = z.infer<typeof loginSchema>
-export type RegisterFormData            = z.infer<typeof registerSchema>
-export type KYCFormData                 = z.infer<typeof kycSchema>
-export type AccountApplicationFormData  = z.infer<typeof accountApplicationSchema>
-export type TicketFormData              = z.infer<typeof ticketSchema>
-export type TicketMessageFormData       = z.infer<typeof ticketMessageSchema>
-export type LeadFormData                = z.infer<typeof leadSchema>
+export type LoginFormData              = z.infer<typeof loginSchema>
+export type RegisterFormData           = z.infer<typeof registerSchema>
+export type KYCFormData                = z.infer<typeof kycSchema>
+export type AccountApplicationFormData = z.infer<typeof accountApplicationSchema>
+export type TicketFormData             = z.infer<typeof ticketSchema>
+export type TicketMessageFormData      = z.infer<typeof ticketMessageSchema>
+export type LeadFormData               = z.infer<typeof leadSchema>
