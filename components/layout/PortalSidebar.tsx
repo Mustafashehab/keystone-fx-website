@@ -10,8 +10,6 @@ interface NavItem {
   icon: React.ReactNode
 }
 
-/* ================= ICONS ================= */
-
 const DashboardIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeWidth={1.75} d="M3 12l2-2 7-7 7 7 2 2M5 10v10h3m8-10v10h-3M9 21v-6h6v6" />
@@ -43,6 +41,20 @@ const SupportIcon = () => (
   </svg>
 )
 
+const DepositIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+      d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+  </svg>
+)
+
+const WithdrawIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+      d="M12 20V8m0 0l-4 4m4-4l4 4M4 4h16" />
+  </svg>
+)
+
 const SettingsIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <circle cx="12" cy="12" r="3" strokeWidth={1.75} />
@@ -50,29 +62,31 @@ const SettingsIcon = () => (
   </svg>
 )
 
-/* ================= NAV ================= */
-
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/portal/dashboard', icon: <DashboardIcon /> },
-  { label: 'KYC Verification', href: '/portal/kyc', icon: <KYCIcon /> },
-  { label: 'Documents', href: '/portal/documents', icon: <DocumentIcon /> },
+  { label: 'Dashboard',           href: '/portal/dashboard',           icon: <DashboardIcon /> },
+  { label: 'KYC Verification',    href: '/portal/kyc',                 icon: <KYCIcon /> },
+  { label: 'Documents',           href: '/portal/documents',           icon: <DocumentIcon /> },
   { label: 'Account Application', href: '/portal/account-application', icon: <AccountIcon /> },
-  { label: 'Support', href: '/portal/support', icon: <SupportIcon /> },
+  { label: 'Deposit USDT',        href: '/portal/deposit',             icon: <DepositIcon /> },
+  { label: 'Withdraw USDT',       href: '/portal/withdrawal',          icon: <WithdrawIcon /> },
+  { label: 'Support',             href: '/portal/support',             icon: <SupportIcon /> },
 ]
 
 const BOTTOM_ITEMS: NavItem[] = [
   { label: 'Settings', href: '/portal/settings', icon: <SettingsIcon /> },
 ]
 
-/* ================= SIDEBAR ================= */
+interface PortalSidebarProps {
+  userName: string
+  userEmail: string
+  onSignOut: () => void
+}
 
-export function PortalSidebar({ userName, userEmail, onSignOut }: any) {
+export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarProps) {
   const pathname = usePathname()
 
   return (
     <aside className="w-64 flex flex-col h-screen sticky top-0 bg-white border-r border-[#e5e7eb]">
-
-      {/* LOGO */}
       <div className="px-6 py-6 border-b border-[#eef2f6]">
         <p className="text-sm font-semibold text-[#0f172a]">
           Keystone <span className="text-[#94a3b8]">FX</span>
@@ -82,38 +96,27 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: any) {
         </p>
       </div>
 
-      {/* NAV */}
-      <nav className="flex-1 px-3 py-5 space-y-1">
+      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.href}
             item={item}
-            active={pathname === item.href}
+            active={pathname === item.href || pathname.startsWith(item.href + '/')}
           />
         ))}
       </nav>
 
-      {/* BOTTOM */}
       <div className="px-3 space-y-1 pb-3">
         {BOTTOM_ITEMS.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={pathname === item.href}
-          />
+          <NavLink key={item.href} item={item} active={pathname === item.href} />
         ))}
       </div>
 
-      {/* USER */}
       <div className="px-4 pb-5 border-t border-[#eef2f6] pt-4">
         <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e5e7eb]">
           <p className="text-xs text-[#0f172a] font-medium truncate">{userName}</p>
           <p className="text-[11px] text-[#64748b] truncate">{userEmail}</p>
-
-          <button
-            onClick={onSignOut}
-            className="mt-3 text-[11px] text-[#64748b] hover:text-red-500 transition"
-          >
+          <button onClick={onSignOut} className="mt-3 text-[11px] text-[#64748b] hover:text-red-500 transition">
             Sign out
           </button>
         </div>
@@ -122,22 +125,14 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: any) {
   )
 }
 
-/* ================= NAV LINK ================= */
-
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
-    <Link
-      href={item.href}
+    <Link href={item.href}
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
-        active
-          ? 'bg-[#eef2f6] text-[#0f172a] font-medium'
-          : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
-      )}
-    >
-      <span className={cn(active ? 'text-[#0f172a]' : 'text-[#94a3b8]')}>
-        {item.icon}
-      </span>
+        active ? 'bg-[#eef2f6] text-[#0f172a] font-medium' : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
+      )}>
+      <span className={cn(active ? 'text-[#0f172a]' : 'text-[#94a3b8]')}>{item.icon}</span>
       <span>{item.label}</span>
     </Link>
   )

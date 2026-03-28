@@ -197,7 +197,6 @@ export default function DocumentsPage() {
                     <h3 className="text-sm font-semibold text-[var(--kfx-text)]">
                       {req.label}
                     </h3>
-                    <span className="text-xs text-[var(--kfx-danger)]">Required</span>
                     {latest && (
                       <StatusBadge type="document" status={latest.status} />
                     )}
@@ -237,7 +236,6 @@ export default function DocumentsPage() {
           )
         })}
 
-        {/* Additional / other uploaded docs not in required list */}
         {Object.entries(docsByType)
           .filter(([type]) => !REQUIRED_DOCUMENTS.some((r) => r.type === type))
           .map(([type, docs]) => (

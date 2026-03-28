@@ -20,27 +20,18 @@ import { formatDate } from '@/lib/utils'
 import type { AccountApplication, ClientProfile } from '@/types'
 
 const LEVERAGE_OPTIONS = [
-  { label: '1:10',  value: '1:10' },
-  { label: '1:20',  value: '1:20' },
-  { label: '1:50',  value: '1:50' },
   { label: '1:100', value: '1:100' },
   { label: '1:200', value: '1:200' },
   { label: '1:500', value: '1:500' },
 ]
 
 const CURRENCY_OPTIONS = [
-  { label: 'USD — US Dollar',        value: 'USD' },
-  { label: 'EUR — Euro',             value: 'EUR' },
-  { label: 'GBP — British Pound',    value: 'GBP' },
-  { label: 'AED — UAE Dirham',       value: 'AED' },
-  { label: 'CHF — Swiss Franc',      value: 'CHF' },
-  { label: 'SGD — Singapore Dollar', value: 'SGD' },
+  { label: 'USD — US Dollar', value: 'USD' },
+  { label: 'EUR — Euro',      value: 'EUR' },
 ]
 
 const PLATFORM_OPTIONS = [
-  { label: 'MetaTrader 4 (MT4)', value: 'MT4' },
   { label: 'MetaTrader 5 (MT5)', value: 'MT5' },
-  { label: 'cTrader',            value: 'cTrader' },
 ]
 
 const ACCOUNT_TYPE_OPTIONS = [
@@ -52,12 +43,12 @@ const ACCOUNT_TYPE_OPTIONS = [
 const TIERS = [
   {
     label: 'Standard',
-    min: '$1,000',
-    features: ['MT4 / MT5', 'Standard spreads', 'Email support'],
+    min: '$100',
+    features: ['MT5', 'Standard spreads', 'Email support'],
   },
   {
     label: 'Advanced',
-    min: '$25,000',
+    min: '$10,000',
     features: ['All platforms', 'Tight spreads', 'Priority support'],
   },
   {
@@ -268,7 +259,7 @@ export default function AccountApplicationPage() {
               <Input
                 label="Intended Initial Deposit (USD)"
                 type="number" required min={0} step={100}
-                placeholder="e.g. 10000"
+                placeholder="e.g. 100"
                 hint="This is an indication only and does not constitute a commitment."
                 error={errors.initialDepositAmount?.message}
                 disabled={isReadOnly}
