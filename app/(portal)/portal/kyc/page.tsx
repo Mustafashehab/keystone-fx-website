@@ -60,6 +60,7 @@ const INVESTMENT_OBJECTIVES = [
   { label: 'Diversification',   value: 'diversification' },
 ]
 
+// Defined outside component to avoid re-creation on every render
 const COUNTRIES = [
   { label: 'Afghanistan', value: 'AF' },
   { label: 'Albania', value: 'AL' },
@@ -372,33 +373,18 @@ export default function KYCPage() {
 
     const data = getValues()
 
+    // Only first name, last name, date of birth, and nationality are mandatory
     const missing: string[] = []
-    if (!data.firstName)          missing.push('First Name')
-    if (!data.lastName)           missing.push('Last Name')
-    if (!data.dateOfBirth)        missing.push('Date of Birth')
-    if (!data.nationality)        missing.push('Nationality')
-    if (!data.countryOfResidence) missing.push('Country of Residence')
-    if (!data.addressLine1)       missing.push('Address Line 1')
-    if (!data.city)               missing.push('City')
-    if (!data.postalCode)         missing.push('Postal Code')
-    if (!data.phone)              missing.push('Phone Number')
-    if (!data.employmentStatus)   missing.push('Employment Status')
-    if (!data.annualIncomeRange)  missing.push('Annual Income Range')
-    if (!data.sourceOfFunds)      missing.push('Source of Funds')
-    if (!data.tradingExperience)  missing.push('Trading Experience')
-    if (objectives.length === 0)  missing.push('Investment Objectives')
+    if (!data.firstName)   missing.push('First Name')
+    if (!data.lastName)    missing.push('Last Name')
+    if (!data.dateOfBirth) missing.push('Date of Birth')
+    if (!data.nationality) missing.push('Nationality')
 
     if (missing.length > 0) {
       const msg = 'Please complete: ' + missing.join(', ')
       setServerError(msg)
       toastError('Incomplete form', msg)
-      if (['First Name','Last Name','Date of Birth','Nationality','Country of Residence','Phone Number'].some(f => missing.includes(f))) {
-        setActiveSection(0)
-      } else if (['Address Line 1','City','Postal Code'].some(f => missing.includes(f))) {
-        setActiveSection(1)
-      } else if (['Employment Status','Annual Income Range','Source of Funds','Trading Experience','Investment Objectives'].some(f => missing.includes(f))) {
-        setActiveSection(2)
-      }
+      setActiveSection(0)
       return
     }
 
@@ -409,14 +395,14 @@ export default function KYCPage() {
         .update({
           first_name:           data.firstName,
           last_name:            data.lastName,
-          phone:                data.phone,
+          phone:                data.phone || null,
           date_of_birth:        data.dateOfBirth,
           nationality:          data.nationality,
-          country_of_residence: data.countryOfResidence,
-          address_line1:        data.addressLine1,
-          address_line2:        data.addressLine2 ?? null,
-          city:                 data.city,
-          postal_code:          data.postalCode,
+          country_of_residence: data.countryOfResidence || null,
+          address_line1:        data.addressLine1 || null,
+          address_line2:        data.addressLine2 || null,
+          city:                 data.city || null,
+          postal_code:          data.postalCode || null,
           kyc_status:           'pending',
           onboarding_step:      Math.max(profile.onboarding_step, 1),
           updated_at:           new Date().toISOString(),
@@ -431,12 +417,12 @@ export default function KYCPage() {
           client_id:             profile.id,
           status:                'pending',
           submitted_at:          new Date().toISOString(),
-          employment_status:     data.employmentStatus,
+          employment_status:     data.employmentStatus || null,
           employer_name:         data.employerName || null,
-          annual_income_range:   data.annualIncomeRange,
-          source_of_funds:       data.sourceOfFunds,
-          trading_experience:    data.tradingExperience,
-          investment_objectives: objectives,
+          annual_income_range:   data.annualIncomeRange || null,
+          source_of_funds:       data.sourceOfFunds || null,
+          trading_experience:    data.tradingExperience || null,
+          investment_objectives: objectives.length > 0 ? objectives : null,
           politically_exposed:   isPEP,
           pep_details:           data.pepDetails || null,
           us_person:             isUSPerson,
@@ -514,6 +500,7 @@ export default function KYCPage() {
           ))}
         </div>
 
+        {/* SECTION 0 — Personal Info: name + DOB + nationality mandatory, rest optional */}
         {activeSection === 0 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">Personal Information</h2>
@@ -521,9 +508,9 @@ export default function KYCPage() {
               <Input label="First Name"    required disabled={isReadOnly} {...register('firstName')} />
               <Input label="Last Name"     required disabled={isReadOnly} {...register('lastName')} />
               <Input label="Date of Birth" type="date" required disabled={isReadOnly} {...register('dateOfBirth')} />
-              <Input label="Phone Number"  type="tel"  required disabled={isReadOnly} placeholder="+1 234 567 8900" {...register('phone')} />
+              <Input label="Phone Number"  type="tel"  disabled={isReadOnly} placeholder="+1 234 567 8900" {...register('phone')} />
               <Select label="Nationality"          required disabled={isReadOnly} options={COUNTRIES} placeholder="Select nationality" {...register('nationality')} />
-              <Select label="Country of Residence" required disabled={isReadOnly} options={COUNTRIES} placeholder="Select country"     {...register('countryOfResidence')} />
+              <Select label="Country of Residence" disabled={isReadOnly} options={COUNTRIES} placeholder="Select country (optional)" {...register('countryOfResidence')} />
             </div>
             <div className="mt-4 flex justify-end">
               <Button type="button" variant="primary" onClick={() => setActiveSection(1)}>
@@ -533,15 +520,18 @@ export default function KYCPage() {
           </Card>
         )}
 
+        {/* SECTION 1 — Address: all optional */}
         {activeSection === 1 && (
           <Card>
-            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">Residential Address</h2>
+            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
+              Residential Address <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
+            </h2>
             <div className="space-y-4">
-              <Input label="Address Line 1" required disabled={isReadOnly} placeholder="Street address" {...register('addressLine1')} />
-              <Input label="Address Line 2" disabled={isReadOnly} placeholder="Apartment, suite, etc. (optional)" {...register('addressLine2')} />
+              <Input label="Address Line 1" disabled={isReadOnly} placeholder="Street address" {...register('addressLine1')} />
+              <Input label="Address Line 2" disabled={isReadOnly} placeholder="Apartment, suite, etc." {...register('addressLine2')} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="City"        required disabled={isReadOnly} {...register('city')} />
-                <Input label="Postal Code" required disabled={isReadOnly} {...register('postalCode')} />
+                <Input label="City"        disabled={isReadOnly} {...register('city')} />
+                <Input label="Postal Code" disabled={isReadOnly} {...register('postalCode')} />
               </div>
             </div>
             <div className="mt-4 flex justify-between">
@@ -551,22 +541,25 @@ export default function KYCPage() {
           </Card>
         )}
 
+        {/* SECTION 2 — Financial Profile: all optional */}
         {activeSection === 2 && (
           <Card>
-            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">Financial Profile</h2>
+            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
+              Financial Profile <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
+            </h2>
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Select label="Employment Status"   required disabled={isReadOnly} options={EMPLOYMENT_OPTIONS}     placeholder="Select status"    {...register('employmentStatus')} />
+                <Select label="Employment Status"   disabled={isReadOnly} options={EMPLOYMENT_OPTIONS}     placeholder="Select status"    {...register('employmentStatus')} />
                 {(employmentStatus === 'employed' || employmentStatus === 'self_employed') && (
                   <Input label="Employer / Company Name" disabled={isReadOnly} {...register('employerName')} />
                 )}
-                <Select label="Annual Income Range" required disabled={isReadOnly} options={INCOME_OPTIONS}          placeholder="Select range"     {...register('annualIncomeRange')} />
-                <Select label="Source of Funds"     required disabled={isReadOnly} options={SOURCE_OF_FUNDS_OPTIONS} placeholder="Select source"    {...register('sourceOfFunds')} />
-                <Select label="Trading Experience"  required disabled={isReadOnly} options={EXPERIENCE_OPTIONS}      placeholder="Select experience" {...register('tradingExperience')} />
+                <Select label="Annual Income Range" disabled={isReadOnly} options={INCOME_OPTIONS}          placeholder="Select range"     {...register('annualIncomeRange')} />
+                <Select label="Source of Funds"     disabled={isReadOnly} options={SOURCE_OF_FUNDS_OPTIONS} placeholder="Select source"    {...register('sourceOfFunds')} />
+                <Select label="Trading Experience"  disabled={isReadOnly} options={EXPERIENCE_OPTIONS}      placeholder="Select experience" {...register('tradingExperience')} />
               </div>
               <div>
                 <p className="text-[13px] font-medium text-[#0f172a] mb-2">
-                  Investment Objectives <span className="text-red-500">*</span>
+                  Investment Objectives <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {INVESTMENT_OBJECTIVES.map((obj) => (
@@ -591,13 +584,16 @@ export default function KYCPage() {
           </Card>
         )}
 
+        {/* SECTION 3 — Declarations: all optional */}
         {activeSection === 3 && (
           <Card>
-            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">Regulatory Declarations</h2>
+            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
+              Regulatory Declarations <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
+            </h2>
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Select label="Tax Residency (optional)" disabled={isReadOnly} options={COUNTRIES} placeholder="Select country"    {...register('taxResidency')} />
-                <Input  label="Tax ID / TIN (optional)"  disabled={isReadOnly} placeholder="e.g. 123-45-6789" {...register('taxIdNumber')} />
+                <Select label="Tax Residency" disabled={isReadOnly} options={COUNTRIES} placeholder="Select country" {...register('taxResidency')} />
+                <Input  label="Tax ID / TIN"  disabled={isReadOnly} placeholder="e.g. 123-45-6789" {...register('taxIdNumber')} />
               </div>
               <div className="space-y-4 pt-2">
                 <label className="flex items-start gap-3 cursor-pointer">
