@@ -8,14 +8,13 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useToast } from '@/components/ui/Toast'
-import { formatDateTime } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { formatDateTime, cn } from '@/lib/utils'
 import type { Ticket, TicketMessage } from '@/types'
 
 export default function TicketDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const id     = params.id as string
+  const router   = useRouter()
+  const params   = useParams()
+  const id       = params.id as string
   const supabase = createClient()
   const { error: toastError } = useToast()
 
@@ -35,7 +34,11 @@ export default function TicketDetailPage() {
 
       const [ticketRes, messagesRes] = await Promise.all([
         supabase.from('tickets').select('*').eq('id', id).single(),
-        supabase.from('ticket_messages').select('*').eq('ticket_id', id).order('created_at', { ascending: true }),
+        supabase
+          .from('ticket_messages')
+          .select('*')
+          .eq('ticket_id', id)
+          .order('created_at', { ascending: true }),
       ])
 
       if (ticketRes.error) { router.push('/portal/support'); return }
@@ -45,6 +48,41 @@ export default function TicketDetailPage() {
     }
     load()
   }, [supabase, router, id])
+
+  // Poll for status changes every 15 seconds — catches admin closing/resolving
+  useEffect(() => {
+    if (!id) return
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from('tickets')
+        .select('status, updated_at')
+        .eq('id', id)
+        .single()
+
+      if (data) {
+        setTicket((prev) => {
+          if (!prev) return prev
+          if (prev.status !== data.status) {
+            return { ...prev, status: data.status, updated_at: data.updated_at }
+          }
+          return prev
+        })
+      }
+
+      // Also poll for new messages from admin
+      const { data: newMessages } = await supabase
+        .from('ticket_messages')
+        .select('*')
+        .eq('ticket_id', id)
+        .order('created_at', { ascending: true })
+
+      if (newMessages) {
+        setMessages(newMessages as TicketMessage[])
+      }
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [id, supabase])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -100,26 +138,41 @@ export default function TicketDetailPage() {
 
       <div className="p-6 space-y-5">
 
-        {/* Ticket metadata */}
+        {/* Closed/resolved notice */}
+        {isClosed && (
+          <div className={`rounded-xl px-4 py-3 text-sm font-medium border ${
+            ticket.status === 'resolved'
+              ? 'bg-green-50 border-green-200 text-green-700'
+              : 'bg-gray-50 border-gray-200 text-gray-600'
+          }`}>
+            {ticket.status === 'resolved'
+              ? '✓ This ticket has been resolved by our support team.'
+              : 'This ticket has been closed. Open a new ticket if you need further assistance.'}
+          </div>
+        )}
+
+        {/* Metadata */}
         <Card>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1">Status</p>
+              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Status</p>
               <StatusBadge type="ticket" status={ticket.status} />
             </div>
             <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1">Priority</p>
+              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Priority</p>
               <StatusBadge type="priority" status={ticket.priority} />
             </div>
             <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1">Category</p>
+              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Category</p>
               <p className="text-sm text-[var(--kfx-text)] capitalize">
                 {ticket.category?.replace(/_/g, ' ') ?? '—'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1">Opened</p>
-              <p className="text-sm text-[var(--kfx-text)]">{formatDateTime(ticket.created_at)}</p>
+              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Opened</p>
+              <p className="text-sm text-[var(--kfx-text)]">
+                {formatDateTime(ticket.created_at)}
+              </p>
             </div>
           </div>
         </Card>
@@ -131,15 +184,12 @@ export default function TicketDetailPage() {
           </div>
 
           <div className="p-5 space-y-4 min-h-[200px] max-h-[480px] overflow-y-auto">
-            {/* Original description */}
             <MessageBubble
               content={ticket.description}
               role="client"
               isOwn={true}
               time={ticket.created_at}
             />
-
-            {/* Thread messages */}
             {messages.map((msg) => (
               <MessageBubble
                 key={msg.id}
@@ -152,8 +202,7 @@ export default function TicketDetailPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Reply box */}
-          {!isClosed && (
+          {!isClosed ? (
             <div className="border-t border-[var(--kfx-border)] p-4">
               <textarea
                 value={reply}
@@ -166,9 +215,7 @@ export default function TicketDetailPage() {
                 className="kfx-input resize-none w-full"
               />
               <div className="flex items-center justify-between mt-3">
-                <p className="text-xs text-[var(--kfx-text-subtle)]">
-                  Cmd+Enter to send
-                </p>
+                <p className="text-xs text-[var(--kfx-text-subtle)]">Cmd+Enter to send</p>
                 <Button
                   variant="primary"
                   size="sm"
@@ -180,12 +227,12 @@ export default function TicketDetailPage() {
                 </Button>
               </div>
             </div>
-          )}
-
-          {isClosed && (
-            <div className="border-t border-[var(--kfx-border)] p-4">
-              <p className="text-sm text-[var(--kfx-text-muted)] text-center">
-                This ticket is {ticket.status}. Open a new ticket if you need further assistance.
+          ) : (
+            <div className="border-t border-[var(--kfx-border)] p-4 text-center">
+              <p className="text-sm text-[var(--kfx-text-muted)]">
+                {ticket.status === 'resolved'
+                  ? 'This ticket has been resolved.'
+                  : 'This ticket is closed.'} Open a new ticket if you need further assistance.
               </p>
             </div>
           )}
@@ -196,10 +243,7 @@ export default function TicketDetailPage() {
 }
 
 function MessageBubble({
-  content,
-  role,
-  isOwn,
-  time,
+  content, role, isOwn, time,
 }: {
   content: string
   role: 'client' | 'admin'
@@ -208,25 +252,21 @@ function MessageBubble({
 }) {
   return (
     <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
-      <div className={cn('max-w-[80%]', isOwn ? 'items-end' : 'items-start', 'flex flex-col gap-1')}>
+      <div className={cn('max-w-[80%] flex flex-col gap-1', isOwn ? 'items-end' : 'items-start')}>
         {!isOwn && (
           <span className="text-[10px] font-semibold text-[var(--kfx-gold)] uppercase tracking-wider px-1">
             Keystone FX Support
           </span>
         )}
-        <div
-          className={cn(
-            'px-4 py-2.5 rounded-xl text-sm leading-relaxed',
-            isOwn
-              ? 'bg-[var(--kfx-accent)] text-white rounded-br-sm'
-              : 'bg-[var(--kfx-surface-raised)] border border-[var(--kfx-border)] text-[var(--kfx-text)] rounded-bl-sm'
-          )}
-        >
+        <div className={cn(
+          'px-4 py-2.5 rounded-xl text-sm leading-relaxed',
+          isOwn
+            ? 'bg-[var(--kfx-accent)] text-white rounded-br-sm'
+            : 'bg-[var(--kfx-surface-raised)] border border-[var(--kfx-border)] text-[var(--kfx-text)] rounded-bl-sm'
+        )}>
           {content}
         </div>
-        <span className="text-[10px] text-[var(--kfx-text-subtle)] px-1">
-          {formatDateTime(time)}
-        </span>
+        <span className="text-[10px] text-[var(--kfx-text-subtle)] px-1">{formatDateTime(time)}</span>
       </div>
     </div>
   )

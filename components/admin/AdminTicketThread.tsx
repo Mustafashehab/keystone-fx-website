@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { formatDateTime, cn } from '@/lib/utils'
 import type { Ticket, TicketMessage, TicketStatus } from '@/types'
@@ -14,8 +13,10 @@ const STATUS_ACTIONS: { label: string; status: TicketStatus; className: string }
 ]
 
 const TICKET_STYLES: Record<string, string> = {
-  open: 'bg-amber-100 text-amber-600', in_progress: 'bg-blue-100 text-blue-600',
-  resolved: 'bg-green-100 text-green-600', closed: 'bg-gray-100 text-gray-500',
+  open:        'bg-amber-100 text-amber-600',
+  in_progress: 'bg-blue-100 text-blue-600',
+  resolved:    'bg-green-100 text-green-600',
+  closed:      'bg-gray-100 text-gray-500',
 }
 
 export function AdminTicketThread({ ticket, initialMessages, adminId }: {
@@ -23,8 +24,7 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
   initialMessages: TicketMessage[]
   adminId: string
 }) {
-  const router   = useRouter()
-  const supabase = createClient()
+  const router  = useRouter()
   const { success, error: toastError } = useToast()
 
   const [messages,       setMessages]       = useState<TicketMessage[]>(initialMessages)
@@ -42,13 +42,26 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
     if (!reply.trim()) return
     setSending(true)
     try {
-      const { data, error } = await supabase
-        .from('ticket_messages')
-        .insert({ ticket_id: ticket.id, sender_id: adminId, sender_role: 'admin', content: reply.trim() })
-        .select().single()
-      if (error) throw new Error(error.message)
-      if (currentStatus === 'open') await updateStatus('in_progress', false)
-      setMessages((prev) => [...prev, data as TicketMessage])
+      // Use API route with service role — direct supabase client is blocked by RLS
+      const res = await fetch('/api/admin/tickets/reply', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          ticketId:       ticket.id,
+          content:        reply.trim(),
+          // Auto-move to in_progress on first admin reply
+          updateStatusTo: currentStatus === 'open' ? 'in_progress' : undefined,
+        }),
+      })
+
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? 'Send failed')
+
+      if (currentStatus === 'open') {
+        setCurrentStatus('in_progress')
+      }
+
+      setMessages((prev) => [...prev, body.message as TicketMessage])
       setReply('')
       success('Reply sent')
     } catch (err: unknown) {
@@ -61,12 +74,21 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
   async function updateStatus(status: TicketStatus, notify = true) {
     setUpdatingStatus(true)
     try {
-      const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
-      if (status === 'resolved') updates.resolved_at = new Date().toISOString()
-      const { error } = await supabase.from('tickets').update(updates).eq('id', ticket.id)
-      if (error) throw new Error(error.message)
+      // Use API route with service role
+      const res = await fetch('/api/admin/tickets/reply', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ticketId: ticket.id, status }),
+      })
+
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? 'Update failed')
+
       setCurrentStatus(status)
-      if (notify) { success('Status updated'); router.refresh() }
+      if (notify) {
+        success('Status updated')
+        router.refresh()
+      }
     } catch (err: unknown) {
       toastError('Update failed', err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -88,10 +110,13 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
       <div className="p-5 space-y-4 max-h-[520px] overflow-y-auto min-h-[200px]">
         <MessageBubble content={ticket.description} isAdmin={false} time={ticket.created_at} label="Client" />
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} content={msg.content}
+          <MessageBubble
+            key={msg.id}
+            content={msg.content}
             isAdmin={msg.sender_role === 'admin'}
             time={msg.created_at}
-            label={msg.sender_role === 'admin' ? 'You (Admin)' : 'Client'} />
+            label={msg.sender_role === 'admin' ? 'You (Admin)' : 'Client'}
+          />
         ))}
         <div ref={bottomRef} />
       </div>
@@ -99,25 +124,38 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
       {!isClosed && (
         <div className="px-5 py-3 border-t border-[#f1f5f9] bg-[#f8fafc] flex items-center gap-2 flex-wrap">
           <p className="text-xs text-[#94a3b8] mr-1">Set status:</p>
-          {STATUS_ACTIONS.filter((a) => !(a.status === 'in_progress' && currentStatus === 'in_progress')).map((action) => (
-            <button key={action.status} onClick={() => updateStatus(action.status)} disabled={updatingStatus}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all disabled:opacity-50 ${action.className}`}>
-              {action.label}
-            </button>
-          ))}
+          {STATUS_ACTIONS
+            .filter((a) => !(a.status === 'in_progress' && currentStatus === 'in_progress'))
+            .map((action) => (
+              <button
+                key={action.status}
+                onClick={() => updateStatus(action.status)}
+                disabled={updatingStatus}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all disabled:opacity-50 ${action.className}`}
+              >
+                {action.label}
+              </button>
+            ))}
         </div>
       )}
 
       {!isClosed ? (
         <div className="border-t border-[#f1f5f9] p-4 bg-[#f8fafc]">
-          <textarea value={reply} onChange={(e) => setReply(e.target.value)}
+          <textarea
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply() }}
-            placeholder="Write a reply to the client… (Cmd+Enter to send)" rows={3}
-            className="w-full rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#94a3b8] focus:ring-2 focus:ring-[#eef2f6] resize-none transition-all" />
+            placeholder="Write a reply to the client… (Cmd+Enter to send)"
+            rows={3}
+            className="w-full rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#94a3b8] focus:ring-2 focus:ring-[#eef2f6] resize-none transition-all"
+          />
           <div className="flex items-center justify-between mt-3">
             <p className="text-xs text-[#94a3b8]">Reply will be visible to the client</p>
-            <button onClick={sendReply} disabled={!reply.trim() || sending}
-              className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0f172a] text-white hover:bg-[#1e293b] transition-all disabled:opacity-40">
+            <button
+              onClick={sendReply}
+              disabled={!reply.trim() || sending}
+              className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0f172a] text-white hover:bg-[#1e293b] transition-all disabled:opacity-40"
+            >
               {sending ? 'Sending…' : 'Send Reply'}
             </button>
           </div>
@@ -125,7 +163,10 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
       ) : (
         <div className="border-t border-[#f1f5f9] p-4 text-center bg-[#f8fafc]">
           <p className="text-sm text-[#64748b]">This ticket is {currentStatus}.</p>
-          <button onClick={() => updateStatus('open')} className="mt-2 text-xs text-blue-500 hover:underline">
+          <button
+            onClick={() => updateStatus('open')}
+            className="mt-2 text-xs text-blue-500 hover:underline"
+          >
             Reopen ticket
           </button>
         </div>
