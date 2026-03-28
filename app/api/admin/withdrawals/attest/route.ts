@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 
 // POST /api/admin/withdrawals/attest
-// Admin submits the MT5 balance they visually confirmed in the terminal.
+// Admin submits the MT5 free margin they visually confirmed in the terminal.
+// Free margin = funds available after open positions and margin requirements.
 // Returns an attestation record valid for 5 minutes.
 // The approve endpoint will reject if no valid attestation exists.
 
@@ -21,10 +22,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'withdrawalId is required' }, { status: 400 })
     }
 
-    const balance = Number(attestedBalance)
-    if (isNaN(balance) || balance < 0) {
+    const freeMargin = Number(attestedBalance)
+    if (isNaN(freeMargin) || freeMargin < 0) {
       return NextResponse.json(
-        { error: 'attestedBalance must be a non-negative number' },
+        { error: 'Free margin must be a non-negative number' },
         { status: 400 }
       )
     }
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
 
     // Upsert the attestation — if admin re-attests (e.g. entered wrong value),
     // the previous attestation is replaced with the fresh one.
+    // DB column is attested_balance — stores the free margin value.
     const now = new Date().toISOString()
     const { error: attestError } = await supabase
       .from('withdrawal_attestations')
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
         {
           withdrawal_id:    withdrawalId,
           admin_id:         user.id,
-          attested_balance: balance,
+          attested_balance: freeMargin,
           attested_at:      now,
           used:             false,
         },
@@ -70,11 +72,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      success:        true,
-      attestedAt:     now,
-      expiresAt:      new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      success:          true,
+      attestedAt:       now,
+      expiresAt:        new Date(Date.now() + 5 * 60 * 1000).toISOString(),
       withdrawalId,
-      attestedBalance: balance,
+      attestedFreeMargin: freeMargin,
     })
   } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

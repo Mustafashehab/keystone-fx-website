@@ -24,7 +24,7 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 interface AttestationState {
-  attestedBalance: number
+  attestedFreeMargin: number
   attestedAt: number
   expiresAt: number
 }
@@ -42,7 +42,7 @@ export default function AdminWithdrawalsPage() {
   const [rejectReason, setRejectReason] = useState('')
 
   const [attestingId,  setAttestingId]  = useState<string | null>(null)
-  const [balanceInput, setBalanceInput] = useState('')
+  const [marginInput,  setMarginInput]  = useState('')
   const [attestations, setAttestations] = useState<Record<string, AttestationState>>({})
   const [attesting,    setAttesting]    = useState(false)
 
@@ -76,19 +76,19 @@ export default function AdminWithdrawalsPage() {
   function getAttestationStatus(withdrawalId: string): {
     valid: boolean
     secondsLeft: number
-    balance: number | null
+    freeMargin: number | null
   } {
     const att = attestations[withdrawalId]
-    if (!att) return { valid: false, secondsLeft: 0, balance: null }
+    if (!att) return { valid: false, secondsLeft: 0, freeMargin: null }
     const msLeft = att.expiresAt - Date.now()
-    if (msLeft <= 0) return { valid: false, secondsLeft: 0, balance: att.attestedBalance }
-    return { valid: true, secondsLeft: Math.ceil(msLeft / 1000), balance: att.attestedBalance }
+    if (msLeft <= 0) return { valid: false, secondsLeft: 0, freeMargin: att.attestedFreeMargin }
+    return { valid: true, secondsLeft: Math.ceil(msLeft / 1000), freeMargin: att.attestedFreeMargin }
   }
 
   async function submitAttestation(withdrawalId: string) {
-    const balance = Number(balanceInput)
-    if (isNaN(balance) || balance < 0 || balanceInput.trim() === '') {
-      toastError('Invalid balance', 'Please enter the MT5 account balance as a number.')
+    const freeMargin = Number(marginInput)
+    if (isNaN(freeMargin) || freeMargin < 0 || marginInput.trim() === '') {
+      toastError('Invalid amount', 'Please enter the MT5 free margin as a number.')
       return
     }
 
@@ -97,7 +97,7 @@ export default function AdminWithdrawalsPage() {
       const res = await fetch('/api/admin/withdrawals/attest', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ withdrawalId, attestedBalance: balance }),
+        body:    JSON.stringify({ withdrawalId, attestedBalance: freeMargin }),
       })
       const body = await res.json()
 
@@ -109,27 +109,27 @@ export default function AdminWithdrawalsPage() {
       setAttestations(prev => ({
         ...prev,
         [withdrawalId]: {
-          attestedBalance: balance,
-          attestedAt:      Date.now(),
-          expiresAt:       Date.now() + ATTESTATION_WINDOW_MS,
+          attestedFreeMargin: freeMargin,
+          attestedAt:         Date.now(),
+          expiresAt:          Date.now() + ATTESTATION_WINDOW_MS,
         }
       }))
 
       setAttestingId(null)
-      setBalanceInput('')
+      setMarginInput('')
 
-      // Check if balance is sufficient and show appropriate toast
       const withdrawal = requests.find(r => r.id === withdrawalId)
       const withdrawalAmount = Number(withdrawal?.amount ?? 0)
-      if (balance < withdrawalAmount) {
+
+      if (freeMargin < withdrawalAmount) {
         toastError(
-          'Insufficient balance',
-          `MT5 balance $${balance.toFixed(2)} is less than withdrawal amount $${withdrawalAmount.toFixed(2)}. You must reject this request.`
+          'Insufficient free margin',
+          `MT5 free margin $${freeMargin.toFixed(2)} is less than withdrawal amount $${withdrawalAmount.toFixed(2)}. You must reject this request.`
         )
       } else {
         success(
-          'Balance attested',
-          `MT5 balance of $${balance.toFixed(2)} confirmed. You have 5 minutes to approve.`
+          'Free margin attested',
+          `MT5 free margin of $${freeMargin.toFixed(2)} confirmed. You have 5 minutes to approve.`
         )
       }
     } catch {
@@ -142,7 +142,7 @@ export default function AdminWithdrawalsPage() {
   async function executeApprove(withdrawalId: string) {
     const att = getAttestationStatus(withdrawalId)
     if (!att.valid) {
-      toastError('Attestation required', 'Please attest the MT5 balance before approving.')
+      toastError('Attestation required', 'Please attest the MT5 free margin before approving.')
       return
     }
 
@@ -256,11 +256,11 @@ export default function AdminWithdrawalsPage() {
           filtered.map((r) => {
             const att = getAttestationStatus(r.id)
             const isActing = rejectingId === r.id || attestingId === r.id
-            const isInsufficientBalance = att.valid && att.balance !== null && att.balance < Number(r.amount)
+            const isInsufficientMargin = att.valid && att.freeMargin !== null && att.freeMargin < Number(r.amount)
 
             return (
               <div key={r.id} className={`rounded-xl border bg-white p-4 ${
-                isInsufficientBalance ? 'border-red-300' : 'border-[#e5e7eb]'
+                isInsufficientMargin ? 'border-red-300' : 'border-[#e5e7eb]'
               }`}>
                 <div className="flex items-start gap-4">
                   <div className="flex-1 min-w-0">
@@ -297,33 +297,34 @@ export default function AdminWithdrawalsPage() {
                       </p>
                     )}
 
-                    {/* Attestation freshness indicator — red if insufficient, green if sufficient */}
+                    {/* Free margin attestation indicator */}
                     {r.status === 'pending' && att.valid && (
                       <div className="mt-2 flex items-center gap-1.5">
                         <div className={`w-2 h-2 rounded-full animate-pulse ${
-                          isInsufficientBalance ? 'bg-red-500' : 'bg-green-500'
+                          isInsufficientMargin ? 'bg-red-500' : 'bg-green-500'
                         }`} />
                         <p className={`text-xs font-medium ${
-                          isInsufficientBalance ? 'text-red-600' : 'text-green-600'
+                          isInsufficientMargin ? 'text-red-600' : 'text-green-600'
                         }`}>
-                          {isInsufficientBalance
-                            ? `MT5 balance $${att.balance?.toFixed(2)} is insufficient for $${Number(r.amount).toFixed(2)} withdrawal — reject required`
-                            : `Balance attested: $${att.balance?.toFixed(2)} — expires in ${att.secondsLeft}s`
+                          {isInsufficientMargin
+                            ? `MT5 free margin $${att.freeMargin?.toFixed(2)} is insufficient to cover $${Number(r.amount).toFixed(2)} withdrawal — reject required`
+                            : `Free margin attested: $${att.freeMargin?.toFixed(2)} — expires in ${att.secondsLeft}s`
                           }
                         </p>
                       </div>
                     )}
 
-                    {/* Attestation input */}
+                    {/* Free margin input */}
                     {attestingId === r.id && (
                       <div className="mt-3 space-y-2">
                         <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
                           <p className="text-xs font-semibold text-amber-700 mb-1">
-                            MT5 Balance Attestation Required
+                            MT5 Free Margin Attestation Required
                           </p>
                           <p className="text-xs text-amber-600">
-                            Open your MT5 Manager Terminal and check the client's account balance.
-                            Enter the exact balance you see below. This attestation is valid for 5 minutes.
+                            Open your MT5 Manager Terminal and check the client's account free margin.
+                            Free margin is the funds available after open positions and margin requirements.
+                            Enter the free margin you see below. This attestation is valid for 5 minutes.
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -333,8 +334,8 @@ export default function AdminWithdrawalsPage() {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={balanceInput}
-                              onChange={(e) => setBalanceInput(e.target.value)}
+                              value={marginInput}
+                              onChange={(e) => setMarginInput(e.target.value)}
                               placeholder="0.00"
                               autoFocus
                               className="w-full h-9 pl-6 pr-3 rounded-lg border border-[#e2e8f0] text-sm text-[#0f172a] outline-none focus:border-amber-400"
@@ -342,12 +343,12 @@ export default function AdminWithdrawalsPage() {
                           </div>
                           <button
                             onClick={() => submitAttestation(r.id)}
-                            disabled={attesting || !balanceInput.trim()}
+                            disabled={attesting || !marginInput.trim()}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-white disabled:opacity-40">
-                            {attesting ? 'Recording…' : 'Attest Balance'}
+                            {attesting ? 'Recording…' : 'Attest Free Margin'}
                           </button>
                           <button
-                            onClick={() => { setAttestingId(null); setBalanceInput('') }}
+                            onClick={() => { setAttestingId(null); setMarginInput('') }}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[#e2e8f0] text-[#64748b]">
                             Cancel
                           </button>
@@ -366,7 +367,7 @@ export default function AdminWithdrawalsPage() {
                             type="text"
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
-                            placeholder="e.g. Insufficient MT5 balance, address mismatch…"
+                            placeholder="e.g. Insufficient MT5 free margin, address mismatch…"
                             autoFocus
                             className="flex-1 h-9 px-3 rounded-lg border border-[#e2e8f0] text-sm text-[#0f172a] outline-none focus:border-[#94a3b8]"
                           />
@@ -391,8 +392,8 @@ export default function AdminWithdrawalsPage() {
                     <div className="flex flex-col items-end gap-2 shrink-0">
 
                       {att.valid ? (
-                        isInsufficientBalance ? (
-                          // Balance too low — Approve is blocked, show reject prompt
+                        isInsufficientMargin ? (
+                          // Free margin too low — Approve blocked, force reject
                           <div className="flex flex-col items-end gap-1.5">
                             <div className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-600 border border-red-300 cursor-not-allowed">
                               ✕ Cannot Approve
@@ -400,16 +401,16 @@ export default function AdminWithdrawalsPage() {
                             <button
                               onClick={() => {
                                 setRejectingId(r.id)
-                                setRejectReason('Insufficient MT5 balance')
+                                setRejectReason('Insufficient MT5 free margin')
                                 setAttestingId(null)
                               }}
                               disabled={processing === r.id}
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
-                              Reject (Insufficient Funds)
+                              Reject (Insufficient Margin)
                             </button>
                           </div>
                         ) : (
-                          // Balance sufficient — show Approve with countdown
+                          // Free margin sufficient — show Approve with countdown
                           <button
                             onClick={() => executeApprove(r.id)}
                             disabled={processing === r.id}
@@ -422,17 +423,17 @@ export default function AdminWithdrawalsPage() {
                         <button
                           onClick={() => {
                             setAttestingId(r.id)
-                            setBalanceInput('')
+                            setMarginInput('')
                             setRejectingId(null)
                           }}
                           disabled={processing === r.id}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300 transition-colors disabled:opacity-50">
-                          Verify MT5 Balance
+                          Verify MT5 Free Margin
                         </button>
                       )}
 
-                      {/* Reject button — always available unless insufficient balance already showing it */}
-                      {!isInsufficientBalance && (
+                      {/* Reject button — hidden when insufficient margin is already showing it */}
+                      {!isInsufficientMargin && (
                         <button
                           onClick={() => {
                             setRejectingId(r.id)
@@ -445,7 +446,7 @@ export default function AdminWithdrawalsPage() {
                         </button>
                       )}
 
-                      {!att.valid && att.balance !== null && (
+                      {!att.valid && att.freeMargin !== null && (
                         <p className="text-[10px] text-[#94a3b8] text-right">
                           Previous attestation expired
                         </p>
