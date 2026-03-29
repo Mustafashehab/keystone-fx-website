@@ -4,6 +4,7 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
 import { AdminHeader } from '@/components/layout/AdminHeader'
 import { formatDate, formatDateTime, formatFileSize } from '@/lib/utils'
 import { InternalNotesPanel } from '@/components/admin/InternalNotesPanel'
+import { AdminWalletPanel } from '@/components/admin/AdminWalletPanel'
 
 const KYC_STYLES: Record<string, string> = {
   not_started:  'bg-gray-100 text-gray-500',
@@ -52,6 +53,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
     { data: application },
     { data: tickets },
     { data: notes },
+    { data: wallet },
   ] = await Promise.all([
     supabase.from('client_profiles').select('*').eq('id', id).single(),
     supabase.from('kyc_submissions').select('*').eq('client_id', id).maybeSingle(),
@@ -59,6 +61,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
     supabase.from('account_applications').select('*').eq('client_id', id).maybeSingle(),
     supabase.from('tickets').select('*').eq('client_id', id).order('created_at', { ascending: false }),
     supabase.from('internal_notes').select('*').eq('client_id', id).order('created_at', { ascending: false }),
+    supabase.from('client_wallets').select('*').eq('client_id', id).maybeSingle(),
   ])
 
   if (!profile) notFound()
@@ -162,12 +165,18 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
           )}
         </div>
 
-        <div>
+        <div className="space-y-5">
           <InternalNotesPanel
             clientId={id}
             authorId={user.id}
             initialNotes={(notes ?? []) as { id: string; content: string; author_id: string; created_at: string }[]}
           />
+          {wallet && (
+            <AdminWalletPanel
+              clientId={id}
+              wallet={wallet}
+            />
+          )}
         </div>
       </div>
     </div>

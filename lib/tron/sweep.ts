@@ -35,12 +35,40 @@ async function waitForConfirmation(txHash: string): Promise<boolean> {
   return false
 }
 
-export async function sweepToMaster(clientId: string): Promise<{
-  txHash: string | null
-  amount: number
-  error: string | null
-  confirmed: boolean
-}> {
+async function waitForTrxConfirmation(txHash: string): Promise<boolean> {
+  for (let i = 0; i < CONFIRMATION_POLL_ATTEMPTS; i++) {
+    try {
+      const res = await fetch(
+        `https://api.trongrid.io/v1/transactions/${txHash}`,
+        { headers: { 'TRON-PRO-API-KEY': TRON_CONFIG.apiKey } }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        const tx = data.data?.[0]
+        if (tx?.ret?.[0]?.contractRet === 'SUCCESS' || tx?.ret?.[0]?.ret === 'SUCESS') return true
+        // For TRX transfers, check differently
+        if (tx && tx.ret && tx.ret[0] && !tx.ret[0].contractRet) return true
+      }
+    } catch {
+      // continue
+    }
+    if (i < CONFIRMATION_POLL_ATTEMPTS - 1) {
+      await new Promise(resolve => setTimeout(resolve, CONFIRMATION_POLL_INTERVAL_MS))
+    }
+  }
+  return false
+}
+
+export interface SweepResult {
+  usdtTxHash: string | null
+  trxTxHash:  string | null
+  usdtAmount: number
+  trxAmount:  number
+  error:      string | null
+  confirmed:  boolean
+}
+
+export async function sweepToMaster(clientId: string): Promise<SweepResult> {
   const supabase = getServiceClient()
 
   try {
@@ -51,11 +79,11 @@ export async function sweepToMaster(clientId: string): Promise<{
       .single()
 
     if (walletFetchError || !wallet) {
-      return { txHash: null, amount: 0, error: 'Wallet not found', confirmed: false }
+      return { usdtTxHash: null, trxTxHash: null, usdtAmount: 0, trxAmount: 0, error: 'Wallet not found', confirmed: false }
     }
 
     if (wallet.sweep_locked) {
-      return { txHash: null, amount: 0, error: 'Sweep already in progress for this wallet', confirmed: false }
+      return { usdtTxHash: null, trxTxHash: null, usdtAmount: 0, trxAmount: 0, error: 'Sweep already in progress for this wallet', confirmed: false }
     }
 
     // Acquire sweep lock
@@ -66,7 +94,7 @@ export async function sweepToMaster(clientId: string): Promise<{
       .eq('sweep_locked', false)
 
     if (lockError) {
-      return { txHash: null, amount: 0, error: 'Could not acquire sweep lock', confirmed: false }
+      return { usdtTxHash: null, trxTxHash: null, usdtAmount: 0, trxAmount: 0, error: 'Could not acquire sweep lock', confirmed: false }
     }
 
     try {
@@ -76,68 +104,114 @@ export async function sweepToMaster(clientId: string): Promise<{
       const TronWebLib = require('tronweb')
       const TronWebConstructor = TronWebLib.TronWeb
       const tron = new TronWebConstructor({
-        fullHost:   'https://api.trongrid.io',
-        headers:    { 'TRON-PRO-API-KEY': TRON_CONFIG.apiKey },
+        fullHost: 'https://api.trongrid.io',
+        headers:  { 'TRON-PRO-API-KEY': TRON_CONFIG.apiKey },
         privateKey,
       })
 
+      // ─── Check USDT balance ───────────────────────────────────────────
       const contract   = await tron.contract().at(TRON_CONFIG.usdtContract)
-      const rawBalance = await contract.balanceOf(wallet.tron_address).call()
-      const balance    = Number(rawBalance) / 1_000_000
+      const rawUsdt    = await contract.balanceOf(wallet.tron_address).call()
+      const usdtBalance = Number(rawUsdt) / 1_000_000
 
-      if (balance < 1) {
-        return { txHash: null, amount: 0, error: 'Balance too low to sweep', confirmed: false }
-      }
+      // ─── Check TRX balance ────────────────────────────────────────────
+      const accountInfo  = await tron.trx.getAccount(wallet.tron_address)
+      const trxBalanceSun = accountInfo?.balance ?? 0
+      const trxBalance    = trxBalanceSun / 1_000_000
 
-      const amountSun = Math.floor(balance * 1_000_000)
-      const tx = await contract
-        .transfer(TRON_CONFIG.masterWallet, amountSun)
-        .send({ feeLimit: 100_000_000 })
+      // Reserve a small amount of TRX for transaction fees if needed
+      // Keep 2 TRX as reserve, sweep the rest
+      const TRX_RESERVE   = 2
+      const trxToSend     = Math.max(0, trxBalance - TRX_RESERVE)
 
-      const txHash = typeof tx === 'string' ? tx : tx?.txid ?? null
-
-      if (!txHash) {
-        return { txHash: null, amount: balance, error: 'Transaction broadcast failed — no hash returned', confirmed: false }
-      }
-
-      // Wait for on-chain confirmation before touching the database
-      const confirmed = await waitForConfirmation(txHash)
-
-      if (!confirmed) {
-        console.error(`[sweep] Transaction ${txHash} broadcast but not confirmed after ${CONFIRMATION_POLL_ATTEMPTS} attempts. Manual reconciliation required.`)
+      if (usdtBalance < 1 && trxToSend < 1) {
         return {
-          txHash,
-          amount: balance,
-          error: `Transaction broadcast (${txHash}) but on-chain confirmation timed out. Do not sweep again until manually verified.`,
+          usdtTxHash: null,
+          trxTxHash:  null,
+          usdtAmount: usdtBalance,
+          trxAmount:  trxBalance,
+          error: `Balance too low to sweep. USDT: ${usdtBalance.toFixed(2)}, TRX: ${trxBalance.toFixed(2)}`,
           confirmed: false,
         }
       }
 
-      // Confirmed on-chain — now update DB atomically via rpc
-      // record_deposit_swept updates deposit_transactions, client_wallets,
-      // and inserts financial_events all in one transaction.
-      // We sweep all detected deposits for this client.
-      const { data: detectedDeposits } = await supabase
-        .from('deposit_transactions')
-        .select('tx_hash')
-        .eq('client_id', clientId)
-        .eq('status', 'detected')
+      let usdtTxHash: string | null = null
+      let trxTxHash:  string | null = null
+      let usdtConfirmed = false
+      let trxConfirmed  = false
 
-      for (const deposit of detectedDeposits ?? []) {
-        const { error: rpcError } = await supabase.rpc('record_deposit_swept', {
-          p_client_id:     clientId,
-          p_tx_hash:       deposit.tx_hash,
-          p_sweep_tx_hash: txHash,
-        })
+      // ─── Sweep USDT ───────────────────────────────────────────────────
+      if (usdtBalance >= 1) {
+        const amountSun = Math.floor(usdtBalance * 1_000_000)
+        const usdtTx = await contract
+          .transfer(TRON_CONFIG.masterWallet, amountSun)
+          .send({ feeLimit: 100_000_000 })
 
-        if (rpcError) {
-          // Log but continue — partial success is better than leaving all as detected
-          console.error(`[sweep] CRITICAL: Failed to record sweep for deposit ${deposit.tx_hash}:`, rpcError.message,
-            `Sweep tx: ${txHash}, client: ${clientId}. Manual reconciliation required.`)
+        usdtTxHash = typeof usdtTx === 'string' ? usdtTx : usdtTx?.txid ?? null
+
+        if (usdtTxHash) {
+          usdtConfirmed = await waitForConfirmation(usdtTxHash)
+          if (!usdtConfirmed) {
+            console.error(`[sweep] USDT tx ${usdtTxHash} not confirmed. Manual check required.`)
+          }
         }
       }
 
-      return { txHash, amount: balance, error: null, confirmed: true }
+      // ─── Sweep TRX (only after USDT sweep, so we still have TRX for fees) ──
+      if (trxToSend >= 1) {
+        // Re-check TRX balance after USDT sweep (fees may have been deducted)
+        const updatedAccount    = await tron.trx.getAccount(wallet.tron_address)
+        const updatedTrxSun     = updatedAccount?.balance ?? 0
+        const updatedTrx        = updatedTrxSun / 1_000_000
+        const finalTrxToSend    = Math.max(0, updatedTrx - 1) // keep 1 TRX for the transfer fee itself
+        const finalTrxSun       = Math.floor(finalTrxToSend * 1_000_000)
+
+        if (finalTrxSun > 0) {
+          const trxTx = await tron.trx.sendTransaction(
+            TRON_CONFIG.masterWallet,
+            finalTrxSun
+          )
+          trxTxHash = trxTx?.txid ?? trxTx?.transaction?.txID ?? null
+
+          if (trxTxHash) {
+            trxConfirmed = await waitForTrxConfirmation(trxTxHash)
+            if (!trxConfirmed) {
+              console.error(`[sweep] TRX tx ${trxTxHash} not confirmed. Manual check required.`)
+            }
+          }
+        }
+      }
+
+      // ─── Update DB if USDT was swept ──────────────────────────────────
+      if (usdtTxHash && usdtConfirmed) {
+        const { data: detectedDeposits } = await supabase
+          .from('deposit_transactions')
+          .select('tx_hash')
+          .eq('client_id', clientId)
+          .eq('status', 'detected')
+
+        for (const deposit of detectedDeposits ?? []) {
+          const { error: rpcError } = await supabase.rpc('record_deposit_swept', {
+            p_client_id:     clientId,
+            p_tx_hash:       deposit.tx_hash,
+            p_sweep_tx_hash: usdtTxHash,
+          })
+
+          if (rpcError) {
+            console.error(`[sweep] CRITICAL: Failed to record sweep for deposit ${deposit.tx_hash}:`,
+              rpcError.message, `Sweep tx: ${usdtTxHash}, client: ${clientId}`)
+          }
+        }
+      }
+
+      return {
+        usdtTxHash,
+        trxTxHash,
+        usdtAmount: usdtBalance,
+        trxAmount:  trxBalance,
+        error:      null,
+        confirmed:  usdtConfirmed || trxConfirmed,
+      }
 
     } finally {
       // Always release sweep lock
@@ -148,7 +222,6 @@ export async function sweepToMaster(clientId: string): Promise<{
     }
 
   } catch (err: unknown) {
-    // Best-effort lock release on unexpected error
     try {
       await supabase
         .from('client_wallets')
@@ -159,8 +232,10 @@ export async function sweepToMaster(clientId: string): Promise<{
     }
 
     return {
-      txHash: null,
-      amount: 0,
+      usdtTxHash: null,
+      trxTxHash:  null,
+      usdtAmount: 0,
+      trxAmount:  0,
       error: err instanceof Error ? err.message : 'Sweep failed',
       confirmed: false,
     }

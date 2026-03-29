@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { sweepToMaster } from '@/lib/tron/sweep'
 
-// Admin only endpoint
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
@@ -15,10 +14,20 @@ export async function POST(req: NextRequest) {
     const { clientId } = await req.json()
     if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
 
-    const { txHash, amount, error } = await sweepToMaster(clientId)
-    if (error) return NextResponse.json({ error }, { status: 500 })
+    const result = await sweepToMaster(clientId)
 
-    return NextResponse.json({ txHash, amount })
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success:    true,
+      usdtTxHash: result.usdtTxHash,
+      trxTxHash:  result.trxTxHash,
+      usdtAmount: result.usdtAmount,
+      trxAmount:  result.trxAmount,
+      confirmed:  result.confirmed,
+    })
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Server error' },
