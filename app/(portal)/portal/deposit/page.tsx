@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PortalHeader } from '@/components/layout/PortalHeader'
@@ -36,18 +36,76 @@ function TxLink({ hash }: { hash: string }) {
   )
 }
 
+// ─── Sweep Confirmation Modal ─────────────────────────────────────────────────
+function SweepModal({ amount, onClose }: { amount: number; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div
+        className="w-full max-w-sm rounded-2xl bg-white p-7 shadow-2xl"
+        style={{ border: '1.5px solid rgba(201,168,76,0.4)' }}
+      >
+        {/* Icon */}
+        <div className="flex justify-center mb-5">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(201,168,76,0.12)', border: '1.5px solid rgba(201,168,76,0.4)' }}
+          >
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Text */}
+        <h2 className="text-lg font-bold text-center text-[#0f172a] mb-2">
+          Deposit Confirmed
+        </h2>
+        <p className="text-sm text-center text-[#64748b] mb-1">
+          Your deposit of
+        </p>
+        <p className="text-3xl font-bold text-center mb-1" style={{ color: '#c9a84c' }}>
+          ${amount.toFixed(2)} USDT
+        </p>
+        <p className="text-sm text-center text-[#64748b] mb-6">
+          has been added to your MT5 account
+        </p>
+
+        {/* OK button */}
+        <button
+          onClick={onClose}
+          className="w-full py-3 rounded-xl text-sm font-bold transition-all"
+          style={{
+            background: 'linear-gradient(135deg, #c9a84c 0%, #f5c842 100%)',
+            color: '#0f0a02',
+            boxShadow: '0 4px 16px rgba(245,200,66,0.35)',
+          }}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DepositPage() {
   const router = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
 
-  const [wallet, setWallet] = useState<WalletData | null>(null)
+  const [wallet,       setWallet]       = useState<WalletData | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [checking, setChecking] = useState(false)
-  const [kycApproved, setKycApproved] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [loading,      setLoading]      = useState(true)
+  const [creating,     setCreating]     = useState(false)
+  const [checking,     setChecking]     = useState(false)
+  const [kycApproved,  setKycApproved]  = useState(false)
+  const [copied,       setCopied]       = useState(false)
+  const [clientId,     setClientId]     = useState<string | null>(null)
+
+  // Sweep modal state
+  const [sweepModal,       setSweepModal]       = useState(false)
+  const [sweptAmount,      setSweptAmount]       = useState(0)
+  const prevBalanceRef = useRef<number | null>(null)
 
   const loadWallet = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -61,6 +119,7 @@ export default function DepositPage() {
 
     if (!profile) { setLoading(false); return }
     setKycApproved(profile.kyc_status === 'approved')
+    setClientId(profile.id)
 
     const { data: walletData } = await supabase
       .from('client_wallets')
@@ -69,7 +128,21 @@ export default function DepositPage() {
       .maybeSingle()
 
     if (walletData) {
-      setWallet(walletData as WalletData)
+      const w = walletData as WalletData
+
+      // Detect sweep: if previous balance was > 0 and now it's 0
+      if (
+        prevBalanceRef.current !== null &&
+        prevBalanceRef.current > 0 &&
+        w.usdt_balance === 0
+      ) {
+        setSweptAmount(prevBalanceRef.current)
+        setSweepModal(true)
+      }
+      prevBalanceRef.current = w.usdt_balance
+
+      setWallet(w)
+
       const { data: txData } = await supabase
         .from('deposit_transactions')
         .select('*')
@@ -83,6 +156,41 @@ export default function DepositPage() {
   }, [supabase, router])
 
   useEffect(() => { loadWallet() }, [loadWallet])
+
+  // Poll every 15 seconds to detect sweep
+  useEffect(() => {
+    if (!clientId) return
+    const interval = setInterval(async () => {
+      const { data: walletData } = await supabase
+        .from('client_wallets')
+        .select('usdt_balance, total_deposited, last_checked_at, tron_address')
+        .eq('client_id', clientId)
+        .maybeSingle()
+
+      if (walletData) {
+        const w = walletData as WalletData
+
+        // Detect sweep
+        if (
+          prevBalanceRef.current !== null &&
+          prevBalanceRef.current > 0 &&
+          w.usdt_balance === 0
+        ) {
+          setSweptAmount(prevBalanceRef.current)
+          setSweepModal(true)
+
+          // Refresh full wallet + transactions
+          await loadWallet()
+          return
+        }
+
+        prevBalanceRef.current = w.usdt_balance
+        setWallet((prev) => prev ? { ...prev, ...w } : w)
+      }
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [clientId, supabase, loadWallet])
 
   async function createWallet() {
     setCreating(true)
@@ -140,6 +248,14 @@ export default function DepositPage() {
 
   return (
     <div>
+      {/* Sweep confirmation modal */}
+      {sweepModal && (
+        <SweepModal
+          amount={sweptAmount}
+          onClose={() => setSweepModal(false)}
+        />
+      )}
+
       <PortalHeader
         title="Deposit USDT"
         subtitle="Send USDT (TRC-20) to your unique deposit wallet below."
@@ -264,10 +380,10 @@ export default function DepositPage() {
                         <span className={
                           'text-xs font-semibold px-2 py-0.5 rounded ' +
                           (tx.status === 'swept'
-                            ? 'bg-[var(--kfx-success-muted)] text-[var(--kfx-success)]'
-                            : 'bg-[var(--kfx-accent-muted)] text-[var(--kfx-accent)]')
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-amber-100 text-amber-600')
                         }>
-                          {tx.status === 'swept' ? 'Processed' : 'Detected'}
+                          {tx.status === 'swept' ? 'Added to MT5' : 'Pending'}
                         </span>
                         <p className="text-xs text-[var(--kfx-text-subtle)] mt-0.5">
                           {formatDate(tx.created_at)}
