@@ -45,9 +45,8 @@ async function waitForTrxConfirmation(txHash: string): Promise<boolean> {
       if (res.ok) {
         const data = await res.json()
         const tx = data.data?.[0]
-        if (tx?.ret?.[0]?.contractRet === 'SUCCESS' || tx?.ret?.[0]?.ret === 'SUCESS') return true
-        // For TRX transfers, check differently
-        if (tx && tx.ret && tx.ret[0] && !tx.ret[0].contractRet) return true
+        // TRX transfers don't have contractRet — just check tx exists and ret is present
+        if (tx && tx.ret && tx.ret[0]) return true
       }
     } catch {
       // continue
@@ -110,19 +109,23 @@ export async function sweepToMaster(clientId: string): Promise<SweepResult> {
       })
 
       // ─── Check USDT balance ───────────────────────────────────────────
-      const contract   = await tron.contract().at(TRON_CONFIG.usdtContract)
-      const rawUsdt    = await contract.balanceOf(wallet.tron_address).call()
+      const contract    = await tron.contract().at(TRON_CONFIG.usdtContract)
+      const rawUsdt     = await contract.balanceOf(wallet.tron_address).call()
       const usdtBalance = Number(rawUsdt) / 1_000_000
 
       // ─── Check TRX balance ────────────────────────────────────────────
-      const accountInfo  = await tron.trx.getAccount(wallet.tron_address)
+      const accountInfo   = await tron.trx.getAccount(wallet.tron_address)
       const trxBalanceSun = accountInfo?.balance ?? 0
       const trxBalance    = trxBalanceSun / 1_000_000
 
-      // Reserve a small amount of TRX for transaction fees if needed
-      // Keep 2 TRX as reserve, sweep the rest
-      const TRX_RESERVE   = 2
-      const trxToSend     = Math.max(0, trxBalance - TRX_RESERVE)
+      // Each TRON transaction costs exactly 13.1 TRX in fees
+      const TX_FEE = 13.1
+
+      // Reserve depends on what needs sweeping:
+      // — USDT + TRX: need 13.1 for USDT fee + 13.1 for TRX fee = 26.2 TRX
+      // — TRX only: need 13.1 TRX for the transfer fee
+      const TRX_RESERVE = usdtBalance >= 1 ? TX_FEE * 2 : TX_FEE
+      const trxToSend   = Math.max(0, trxBalance - TRX_RESERVE)
 
       if (usdtBalance < 1 && trxToSend < 1) {
         return {
@@ -157,33 +160,62 @@ export async function sweepToMaster(clientId: string): Promise<SweepResult> {
         }
       }
 
-      // ─── Sweep TRX (only after USDT sweep, so we still have TRX for fees) ──
+      // ─── Sweep TRX ────────────────────────────────────────────────────
+      // Done AFTER USDT sweep so we still have TRX for USDT fees
       if (trxToSend >= 1) {
-        // Re-check TRX balance after USDT sweep (fees may have been deducted)
-        const updatedAccount    = await tron.trx.getAccount(wallet.tron_address)
-        const updatedTrxSun     = updatedAccount?.balance ?? 0
-        const updatedTrx        = updatedTrxSun / 1_000_000
-        const finalTrxToSend    = Math.max(0, updatedTrx - 1) // keep 1 TRX for the transfer fee itself
-        const finalTrxSun       = Math.floor(finalTrxToSend * 1_000_000)
+        try {
+          // Wait for USDT fees to settle on-chain before re-checking TRX balance
+          if (usdtTxHash) {
+            console.log('[sweep] Waiting 6s for USDT fees to settle...')
+            await new Promise(resolve => setTimeout(resolve, 6000))
+          }
 
-        if (finalTrxSun > 0) {
-          // Build, sign and broadcast TRX transfer manually
-          const unsignedTx = await tron.transactionBuilder.sendTrx(
-            TRON_CONFIG.masterWallet,
-            finalTrxSun,
-            wallet.tron_address
-          )
-          const signedTx = await tron.trx.sign(unsignedTx, privateKey)
-          const trxTx    = await tron.trx.sendRawTransaction(signedTx)
-          // sendRawTransaction returns { result: true, txid: '...' }
-          trxTxHash = trxTx?.txid ?? trxTx?.transaction?.txID ?? null
+          // Re-check actual balance after USDT sweep fees were deducted
+          const updatedAccount = await tron.trx.getAccount(wallet.tron_address)
+          const updatedTrxSun  = updatedAccount?.balance ?? 0
+          const updatedTrx     = updatedTrxSun / 1_000_000
 
-          if (trxTxHash) {
-            trxConfirmed = await waitForTrxConfirmation(trxTxHash)
-            if (!trxConfirmed) {
-              console.error(`[sweep] TRX tx ${trxTxHash} not confirmed. Manual check required.`)
+          // Keep exactly 13.1 TRX for the TRX transfer fee
+          const finalTrxToSend = Math.max(0, updatedTrx - TX_FEE)
+          const finalTrxSun    = Math.floor(finalTrxToSend * 1_000_000)
+
+          console.log(`[sweep] TRX attempt: ${finalTrxToSend} TRX (${finalTrxSun} sun)`)
+
+          if (finalTrxSun > 0) {
+            // Step 1: Build unsigned transaction
+            const unsignedTx = await tron.transactionBuilder.sendTrx(
+              TRON_CONFIG.masterWallet,
+              finalTrxSun,
+              wallet.tron_address
+            )
+            console.log('[sweep] unsignedTx built:', !!unsignedTx)
+
+            // Step 2: Sign with private key
+            const signedTx = await tron.trx.sign(unsignedTx)
+            console.log('[sweep] signedTx built:', !!signedTx)
+
+            // Step 3: Broadcast
+            const broadcastResult = await tron.trx.sendRawTransaction(signedTx)
+            console.log('[sweep] TRX broadcast result:', JSON.stringify(broadcastResult))
+
+            // Extract txid from result
+            trxTxHash = broadcastResult?.txid
+              ?? broadcastResult?.transaction?.txID
+              ?? broadcastResult?.result?.txid
+              ?? null
+
+            console.log('[sweep] TRX txHash:', trxTxHash)
+
+            if (trxTxHash) {
+              trxConfirmed = await waitForTrxConfirmation(trxTxHash)
+              if (!trxConfirmed) {
+                console.error(`[sweep] TRX tx ${trxTxHash} not confirmed.`)
+              }
             }
           }
+        } catch (trxErr) {
+          console.error('[sweep] TRX transfer failed:', trxErr instanceof Error ? trxErr.message : trxErr)
+          // Don't fail the whole sweep — USDT may have succeeded
         }
       }
 
