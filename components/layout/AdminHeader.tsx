@@ -1,5 +1,7 @@
 'use client'
 
+import { NotificationBell } from '@/components/ui/NotificationBell'
+
 interface AdminHeaderProps {
   title: string
   subtitle?: string
@@ -14,7 +16,10 @@ export function AdminHeader({ title, subtitle, action, className }: AdminHeaderP
         <h1 className="text-xl font-semibold text-[#0f172a] tracking-tight">{title}</h1>
         {subtitle && <p className="text-sm text-[#64748b] mt-0.5">{subtitle}</p>}
       </div>
-      {action && <div className="shrink-0 ml-4">{action}</div>}
+      <div className="flex items-center gap-2 shrink-0 ml-4">
+        <NotificationBell recipient="admin" />
+        {action && <div>{action}</div>}
+      </div>
     </header>
   )
 }
