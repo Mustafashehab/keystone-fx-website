@@ -1,273 +1,273 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
+import { ticketSchema, type TicketFormData } from '@/lib/validations'
 import { PortalHeader } from '@/components/layout/PortalHeader'
 import { Card } from '@/components/ui/Card'
+import { Input, Textarea, Select } from '@/components/ui/FormFields'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { EmptyState } from '@/components/ui/Alert'
 import { useToast } from '@/components/ui/Toast'
-import { formatDateTime, cn } from '@/lib/utils'
-import type { Ticket, TicketMessage } from '@/types'
+import { formatDateTime } from '@/lib/utils'
+import type { Ticket, ClientProfile } from '@/types'
 
-export default function TicketDetailPage() {
+const PRIORITY_OPTIONS = [
+  { label: 'Low',    value: 'low' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'High',   value: 'high' },
+  { label: 'Urgent', value: 'urgent' },
+]
+
+const CATEGORY_OPTIONS = [
+  { label: 'Account Verification', value: 'verification' },
+  { label: 'Document Upload',      value: 'documents' },
+  { label: 'Account Application',  value: 'application' },
+  { label: 'Technical Issue',      value: 'technical' },
+  { label: 'Other',                value: 'other' },
+]
+
+export default function SupportPage() {
   const router   = useRouter()
-  const params   = useParams()
-  const id       = params.id as string
   const supabase = createClient()
-  const { error: toastError } = useToast()
+  const { success, error: toastError } = useToast()
 
-  const [ticket,   setTicket]   = useState<Ticket | null>(null)
-  const [messages, setMessages] = useState<TicketMessage[]>([])
-  const [userId,   setUserId]   = useState<string | null>(null)
-  const [reply,    setReply]    = useState('')
-  const [sending,  setSending]  = useState(false)
+  const [profile,  setProfile]  = useState<ClientProfile | null>(null)
+  const [tickets,  setTickets]  = useState<Ticket[]>([])
   const [loading,  setLoading]  = useState(true)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [showForm, setShowForm] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TicketFormData>({
+    resolver: zodResolver(ticketSchema),
+    defaultValues: { priority: 'medium' },
+  })
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/portal/login'); return }
-      setUserId(user.id)
 
-      const [ticketRes, messagesRes] = await Promise.all([
-        supabase.from('tickets').select('*').eq('id', id).single(),
-        supabase
-          .from('ticket_messages')
-          .select('*')
-          .eq('ticket_id', id)
-          .order('created_at', { ascending: true }),
-      ])
+      const { data: profileData } = await supabase
+        .from('client_profiles').select('*').eq('user_id', user.id).single()
 
-      if (ticketRes.error) { router.push('/portal/support'); return }
-      setTicket(ticketRes.data as Ticket)
-      setMessages((messagesRes.data ?? []) as TicketMessage[])
+      if (!profileData) { setLoading(false); return }
+      setProfile(profileData as ClientProfile)
+
+      const { data: ticketsData } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('client_id', profileData.id)
+        .order('created_at', { ascending: false })
+
+      setTickets((ticketsData ?? []) as Ticket[])
       setLoading(false)
     }
     load()
-  }, [supabase, router, id])
+  }, [supabase, router])
 
-  // Poll for status changes every 15 seconds — catches admin closing/resolving
-  useEffect(() => {
-    if (!id) return
-    const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from('tickets')
-        .select('status, updated_at')
-        .eq('id', id)
-        .single()
-
-      if (data) {
-        setTicket((prev) => {
-          if (!prev) return prev
-          if (prev.status !== data.status) {
-            return { ...prev, status: data.status, updated_at: data.updated_at }
-          }
-          return prev
-        })
-      }
-
-      // Also poll for new messages from admin
-      const { data: newMessages } = await supabase
-        .from('ticket_messages')
-        .select('*')
-        .eq('ticket_id', id)
-        .order('created_at', { ascending: true })
-
-      if (newMessages) {
-        setMessages(newMessages as TicketMessage[])
-      }
-    }, 15000)
-
-    return () => clearInterval(interval)
-  }, [id, supabase])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  async function sendReply() {
-    if (!reply.trim() || !userId || !ticket) return
-    setSending(true)
+  async function onSubmit(data: TicketFormData) {
+    if (!profile) return
     try {
-      const { data, error } = await supabase
-        .from('ticket_messages')
+      const { data: ticket, error } = await supabase
+        .from('tickets')
         .insert({
-          ticket_id:   ticket.id,
-          sender_id:   userId,
-          sender_role: 'client',
-          content:     reply.trim(),
+          client_id:   profile.id,
+          subject:     data.subject,
+          description: data.description,
+          priority:    data.priority,
+          category:    data.category ?? null,
+          status:      'open',
         })
         .select()
         .single()
 
       if (error) throw new Error(error.message)
-      setMessages((prev) => [...prev, data as TicketMessage])
-      setReply('')
+      setTickets((prev) => [ticket as Ticket, ...prev])
+
+      // Notify admin of new ticket
+      await fetch('/api/notifications/ticket-submitted', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          clientId:   profile.id,
+          clientName: `${profile.first_name} ${profile.last_name}`,
+          subject:    data.subject,
+          priority:   data.priority,
+          ticketId:   (ticket as Ticket).id,
+        }),
+      })
+
+      success('Ticket created', 'Our support team will respond shortly.')
+      reset()
+      setShowForm(false)
     } catch (err: unknown) {
-      toastError('Send failed', err instanceof Error ? err.message : 'Unknown error')
-    } finally {
-      setSending(false)
+      toastError('Error', err instanceof Error ? err.message : 'Failed to create ticket')
     }
   }
 
-  if (loading) {
-    return (
-      <div>
-        <PortalHeader title="Support Ticket" />
-        <div className="p-6">
-          <div className="h-64 bg-[var(--kfx-surface-raised)] rounded animate-pulse" />
-        </div>
-      </div>
-    )
-  }
-
-  if (!ticket) return null
-
-  const isClosed = ticket.status === 'closed' || ticket.status === 'resolved'
+  const openCount     = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length
+  const resolvedCount = tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length
 
   return (
     <div>
       <PortalHeader
-        title={ticket.subject}
-        subtitle={`Ticket #${ticket.id.slice(0, 8).toUpperCase()}`}
-        action={<StatusBadge type="ticket" status={ticket.status} />}
+        title="Support"
+        subtitle="Get help with your account or submit a new request."
+        action={
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowForm(true)}
+            icon={
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            }
+          >
+            New Ticket
+          </Button>
+        }
       />
 
       <div className="p-6 space-y-5">
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'Total Tickets',      value: tickets.length },
+            { label: 'Open / In Progress', value: openCount },
+            { label: 'Resolved',           value: resolvedCount },
+          ].map((s) => (
+            <div key={s.label} className="kfx-card p-4 text-center">
+              <p className="text-2xl font-semibold text-[var(--kfx-text)] tabular-nums">{s.value}</p>
+              <p className="text-xs text-[var(--kfx-text-muted)] mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
 
-        {/* Closed/resolved notice */}
-        {isClosed && (
-          <div className={`rounded-xl px-4 py-3 text-sm font-medium border ${
-            ticket.status === 'resolved'
-              ? 'bg-green-50 border-green-200 text-green-700'
-              : 'bg-gray-50 border-gray-200 text-gray-600'
-          }`}>
-            {ticket.status === 'resolved'
-              ? '✓ This ticket has been resolved by our support team.'
-              : 'This ticket has been closed. Open a new ticket if you need further assistance.'}
-          </div>
-        )}
-
-        {/* Metadata */}
-        <Card>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Status</p>
-              <StatusBadge type="ticket" status={ticket.status} />
-            </div>
-            <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Priority</p>
-              <StatusBadge type="priority" status={ticket.priority} />
-            </div>
-            <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Category</p>
-              <p className="text-sm text-[var(--kfx-text)] capitalize">
-                {ticket.category?.replace(/_/g, ' ') ?? '—'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-[var(--kfx-text-muted)] mb-1.5">Opened</p>
-              <p className="text-sm text-[var(--kfx-text)]">
-                {formatDateTime(ticket.created_at)}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Message thread */}
         <Card padding="none">
           <div className="px-5 py-4 border-b border-[var(--kfx-border)]">
-            <h2 className="text-sm font-semibold text-[var(--kfx-text)]">Messages</h2>
+            <h2 className="text-sm font-semibold text-[var(--kfx-text)]">Your Tickets</h2>
           </div>
 
-          <div className="p-5 space-y-4 min-h-[200px] max-h-[480px] overflow-y-auto">
-            <MessageBubble
-              content={ticket.description}
-              role="client"
-              isOwn={true}
-              time={ticket.created_at}
-            />
-            {messages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                content={msg.content}
-                role={msg.sender_role as 'client' | 'admin'}
-                isOwn={msg.sender_role === 'client'}
-                time={msg.created_at}
-              />
-            ))}
-            <div ref={bottomRef} />
-          </div>
-
-          {!isClosed ? (
-            <div className="border-t border-[var(--kfx-border)] p-4">
-              <textarea
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply()
-                }}
-                placeholder="Write a reply… (Cmd+Enter to send)"
-                rows={3}
-                className="kfx-input resize-none w-full"
-              />
-              <div className="flex items-center justify-between mt-3">
-                <p className="text-xs text-[var(--kfx-text-subtle)]">Cmd+Enter to send</p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={sending}
-                  disabled={!reply.trim()}
-                  onClick={sendReply}
-                >
-                  Send Reply
-                </Button>
-              </div>
+          {loading ? (
+            <div className="p-5 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 bg-[var(--kfx-surface-raised)] rounded animate-pulse" />
+              ))}
             </div>
+          ) : tickets.length === 0 ? (
+            <EmptyState
+              title="No support tickets"
+              description="You haven't submitted any support requests yet."
+              action={
+                <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>
+                  Create your first ticket
+                </Button>
+              }
+              icon={
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                </svg>
+              }
+            />
           ) : (
-            <div className="border-t border-[var(--kfx-border)] p-4 text-center">
-              <p className="text-sm text-[var(--kfx-text-muted)]">
-                {ticket.status === 'resolved'
-                  ? 'This ticket has been resolved.'
-                  : 'This ticket is closed.'} Open a new ticket if you need further assistance.
-              </p>
+            <div className="divide-y divide-[var(--kfx-border-subtle)]">
+              {tickets.map((ticket) => (
+                <TicketRow
+                  key={ticket.id}
+                  ticket={ticket}
+                  onClick={() => router.push(`/portal/support/${ticket.id}`)}
+                />
+              ))}
             </div>
           )}
         </Card>
       </div>
+
+      <Modal
+        open={showForm}
+        onClose={() => { setShowForm(false); reset() }}
+        title="New Support Ticket"
+        description="Describe your issue and we'll get back to you as soon as possible."
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => { setShowForm(false); reset() }}>Cancel</Button>
+            <Button variant="primary" loading={isSubmitting} onClick={handleSubmit(onSubmit)}>
+              Submit Ticket
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label="Subject" required
+            placeholder="Brief description of your issue"
+            error={errors.subject?.message}
+            {...register('subject')}
+          />
+          <Textarea
+            label="Description" required rows={5}
+            placeholder="Please provide as much detail as possible…"
+            error={errors.description?.message}
+            {...register('description')}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Priority" required
+              options={PRIORITY_OPTIONS}
+              error={errors.priority?.message}
+              {...register('priority')}
+            />
+            <Select
+              label="Category"
+              options={CATEGORY_OPTIONS}
+              placeholder="Select category"
+              error={errors.category?.message}
+              {...register('category')}
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
 
-function MessageBubble({
-  content, role, isOwn, time,
-}: {
-  content: string
-  role: 'client' | 'admin'
-  isOwn: boolean
-  time: string
-}) {
+function TicketRow({ ticket, onClick }: { ticket: Ticket; onClick: () => void }) {
   return (
-    <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
-      <div className={cn('max-w-[80%] flex flex-col gap-1', isOwn ? 'items-end' : 'items-start')}>
-        {!isOwn && (
-          <span className="text-[10px] font-semibold text-[var(--kfx-gold)] uppercase tracking-wider px-1">
-            Keystone FX Support
-          </span>
-        )}
-        <div className={cn(
-          'px-4 py-2.5 rounded-xl text-sm leading-relaxed',
-          isOwn
-            ? 'bg-[var(--kfx-accent)] text-white rounded-br-sm'
-            : 'bg-[var(--kfx-surface-raised)] border border-[var(--kfx-border)] text-[var(--kfx-text)] rounded-bl-sm'
-        )}>
-          {content}
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-4 px-5 py-4 hover:bg-[var(--kfx-surface-raised)] transition-colors text-left group"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <p className="text-sm font-medium text-[var(--kfx-text)] truncate">{ticket.subject}</p>
+          {ticket.category && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--kfx-surface-raised)] text-[var(--kfx-text-muted)] border border-[var(--kfx-border)] capitalize whitespace-nowrap">
+              {ticket.category}
+            </span>
+          )}
         </div>
-        <span className="text-[10px] text-[var(--kfx-text-subtle)] px-1">{formatDateTime(time)}</span>
+        <p className="text-xs text-[var(--kfx-text-subtle)]">Opened {formatDateTime(ticket.created_at)}</p>
       </div>
-    </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <StatusBadge type="priority" status={ticket.priority} showDot={false} />
+        <StatusBadge type="ticket"   status={ticket.status} />
+        <svg className="w-4 h-4 text-[var(--kfx-text-subtle)] group-hover:text-[var(--kfx-accent)] transition-colors"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
+    </button>
   )
 }

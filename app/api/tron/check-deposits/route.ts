@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { checkWalletDeposits } from '@/lib/tron/monitor'
+import { createNotification } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await supabase
       .from('client_profiles')
-      .select('id')
+      .select('id, first_name, last_name')
       .eq('user_id', user.id)
       .single()
 
@@ -24,12 +25,37 @@ export async function POST(req: NextRequest) {
 
     if (!wallet) return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
 
-    const { newDeposits, error } = await checkWalletDeposits(
+    const { newDeposits, totalNewAmount, error } = await checkWalletDeposits(
       profile.id,
       wallet.tron_address
     )
 
     if (error) return NextResponse.json({ error }, { status: 500 })
+
+    // Notify client and admin if new deposits detected
+    if (newDeposits > 0) {
+      const clientName = `${profile.first_name} ${profile.last_name}`
+
+      // Notify client
+      await createNotification({
+        recipient: 'client',
+        clientId:  profile.id,
+        type:      'deposit_detected',
+        title:     'Deposit Detected',
+        message:   `$${totalNewAmount.toFixed(2)} USDT has been detected in your wallet and is being processed.`,
+        link:      '/portal/deposit',
+      })
+
+      // Notify admin
+      await createNotification({
+        recipient: 'admin',
+        clientId:  profile.id,
+        type:      'deposit_detected',
+        title:     'New Deposit Detected',
+        message:   `${clientName} deposited $${totalNewAmount.toFixed(2)} USDT.`,
+        link:      `/admin/clients/${profile.id}`,
+      })
+    }
 
     return NextResponse.json({ newDeposits })
   } catch (err: unknown) {
