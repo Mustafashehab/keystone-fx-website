@@ -78,92 +78,96 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
-  const sidebarContent = (
-    <>
-      <div className="px-6 py-6 border-b border-[#eef2f6] flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-[#0f172a]">
-            Keystone <span className="text-[#94a3b8]">FX</span>
-          </p>
-          <p className="text-[10px] text-[#94a3b8] tracking-widest uppercase mt-1">
-            Client Portal
-          </p>
-        </div>
-        {/* Close button — mobile only */}
-        <button
-          className="md:hidden p-1.5 rounded-lg text-[#64748b] hover:bg-[#f1f5f9]"
-          onClick={() => setOpen(false)}
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={pathname === item.href || pathname.startsWith(item.href + '/')}
-            onClick={() => setOpen(false)}
-          />
-        ))}
-      </nav>
-
-      <div className="px-3 space-y-1 pb-3">
-        {BOTTOM_ITEMS.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={pathname === item.href}
-            onClick={() => setOpen(false)}
-          />
-        ))}
-      </div>
-
-      <div className="px-4 pb-5 border-t border-[#eef2f6] pt-4">
-        <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e5e7eb]">
-          <p className="text-xs text-[#0f172a] font-medium truncate">{userName}</p>
-          <p className="text-[11px] text-[#64748b] truncate">{userEmail}</p>
-          <button onClick={onSignOut} className="mt-3 text-[11px] text-[#64748b] hover:text-red-500 transition">
-            Sign out
-          </button>
-        </div>
-      </div>
-    </>
-  )
-
   return (
     <>
-      {/* Hamburger button — mobile only, top left */}
+      {/* Hamburger button — mobile only, fixed top left */}
       <button
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-white border border-[#e5e7eb] shadow-sm text-[#0f172a]"
+        className="md:hidden fixed top-3 left-3 z-50 p-2 rounded-xl bg-white border border-[#e5e7eb] shadow-sm text-[#0f172a]"
         onClick={() => setOpen(true)}
+        aria-label="Open menu"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
-      {/* Overlay — mobile only */}
+      {/* Dark overlay — mobile only, shown when sidebar is open */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/40"
+          className="md:hidden fixed inset-0 z-40 bg-black/50"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Sidebar — desktop: always visible, mobile: slide in */}
-      <aside className={cn(
-        'flex flex-col h-screen bg-white border-r border-[#e5e7eb] z-50 transition-transform duration-300',
-        // Desktop
-        'md:relative md:w-64 md:translate-x-0 md:sticky md:top-0',
-        // Mobile
-        'fixed top-0 left-0 w-72',
-        open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      )}>
-        {sidebarContent}
+      {/* Sidebar — fixed on mobile (overlays content), sticky on desktop (in flow) */}
+      <aside
+        className={cn(
+          'fixed top-0 left-0 h-screen z-50 flex flex-col bg-white border-r border-[#e5e7eb] transition-transform duration-300 ease-in-out',
+          // Mobile: slide in/out
+          'w-72',
+          open ? 'translate-x-0' : '-translate-x-full',
+          // Desktop: always visible, in normal flow
+          'md:relative md:w-64 md:translate-x-0 md:z-auto'
+        )}
+      >
+        {/* Header */}
+        <div className="px-6 py-6 border-b border-[#eef2f6] flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-[#0f172a]">
+              Keystone <span className="text-[#94a3b8]">FX</span>
+            </p>
+            <p className="text-[10px] text-[#94a3b8] tracking-widest uppercase mt-1">
+              Client Portal
+            </p>
+          </div>
+          {/* Close button — mobile only */}
+          <button
+            className="md:hidden p-1.5 rounded-lg text-[#64748b] hover:bg-[#f1f5f9]"
+            onClick={() => setOpen(false)}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={pathname === item.href || pathname.startsWith(item.href + '/')}
+              onClick={() => setOpen(false)}
+            />
+          ))}
+        </nav>
+
+        {/* Bottom nav */}
+        <div className="px-3 space-y-1 pb-3">
+          {BOTTOM_ITEMS.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={pathname === item.href}
+              onClick={() => setOpen(false)}
+            />
+          ))}
+        </div>
+
+        {/* User card */}
+        <div className="px-4 pb-5 border-t border-[#eef2f6] pt-4">
+          <div className="p-3 rounded-xl bg-[#f8fafc] border border-[#e5e7eb]">
+            <p className="text-xs text-[#0f172a] font-medium truncate">{userName}</p>
+            <p className="text-[11px] text-[#64748b] truncate">{userEmail}</p>
+            <button
+              onClick={onSignOut}
+              className="mt-3 text-[11px] text-[#64748b] hover:text-red-500 transition"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
       </aside>
     </>
   )
@@ -179,7 +183,8 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
         active
           ? 'bg-[#eef2f6] text-[#0f172a] font-medium'
           : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
-      )}>
+      )}
+    >
       <span className={cn(active ? 'text-[#0f172a]' : 'text-[#94a3b8]')}>{item.icon}</span>
       <span>{item.label}</span>
     </Link>
