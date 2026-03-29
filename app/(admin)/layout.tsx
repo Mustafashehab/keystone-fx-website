@@ -16,9 +16,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <ToastProvider>
       <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
         <AdminSidebarClient adminName={adminName} adminEmail={user.email ?? ''} />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Main content — full width on mobile, flex-1 on desktop */}
+        <div className="flex-1 flex flex-col overflow-hidden w-full min-w-0">
           <main className="flex-1 overflow-y-auto bg-[#f8fafc]">
-            {children}
+            {/* Top padding on mobile for hamburger button */}
+            <div className="pt-14 md:pt-0">
+              {children}
+            </div>
           </main>
         </div>
       </div>

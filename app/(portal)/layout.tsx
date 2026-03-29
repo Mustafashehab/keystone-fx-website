@@ -39,14 +39,17 @@ export default async function PortalLayout({
           userEmail={user.email ?? ''}
         />
 
-        <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Main content — full width on mobile, flex-1 on desktop */}
+        <div className="flex flex-1 flex-col overflow-hidden w-full min-w-0">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.06),transparent_40%)]" />
           <main className="relative flex-1 overflow-y-auto">
-            {children}
+            {/* Top padding on mobile to account for hamburger button */}
+            <div className="pt-14 md:pt-0">
+              {children}
+            </div>
           </main>
         </div>
 
-        {/* WhatsApp support button — visible on all portal pages */}
         <PortalWhatsAppButton />
 
       </div>
