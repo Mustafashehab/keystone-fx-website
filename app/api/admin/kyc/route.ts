@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET() {
   try {
@@ -34,15 +35,46 @@ export async function PATCH(req: NextRequest) {
 
     const { error: kycErr } = await supabase
       .from('kyc_submissions')
-      .update({ status, reviewed_at: now, reviewed_by: reviewerId, rejection_reason: rejectionReason ?? null, updated_at: now })
+      .update({
+        status,
+        reviewed_at:      now,
+        reviewed_by:      reviewerId,
+        rejection_reason: rejectionReason ?? null,
+        updated_at:       now,
+      })
       .eq('id', kycId)
+
     if (kycErr) return NextResponse.json({ error: kycErr.message }, { status: 500 })
 
     const { error: profileErr } = await supabase
       .from('client_profiles')
       .update({ kyc_status: status, updated_at: now })
       .eq('id', clientId)
+
     if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 500 })
+
+    // Notify client of KYC decision
+    if (status === 'approved') {
+      await createNotification({
+        recipient: 'client',
+        clientId,
+        type:      'kyc_approved',
+        title:     'KYC Approved',
+        message:   'Your identity verification has been approved. You can now access all platform features.',
+        link:      '/portal/dashboard',
+      })
+    } else if (status === 'rejected') {
+      await createNotification({
+        recipient: 'client',
+        clientId,
+        type:      'kyc_rejected',
+        title:     'KYC Rejected',
+        message:   rejectionReason
+          ? `Your KYC was rejected: ${rejectionReason}. Please resubmit with the correct information.`
+          : 'Your KYC was rejected. Please resubmit with the correct information.',
+        link:      '/portal/kyc',
+      })
+    }
 
     return NextResponse.json({ success: true })
   } catch {
