@@ -167,10 +167,15 @@ export async function sweepToMaster(clientId: string): Promise<SweepResult> {
         const finalTrxSun       = Math.floor(finalTrxToSend * 1_000_000)
 
         if (finalTrxSun > 0) {
-          const trxTx = await tron.trx.sendTransaction(
+          // Build, sign and broadcast TRX transfer manually
+          const unsignedTx = await tron.transactionBuilder.sendTrx(
             TRON_CONFIG.masterWallet,
-            finalTrxSun
+            finalTrxSun,
+            wallet.tron_address
           )
+          const signedTx = await tron.trx.sign(unsignedTx, privateKey)
+          const trxTx    = await tron.trx.sendRawTransaction(signedTx)
+          // sendRawTransaction returns { result: true, txid: '...' }
           trxTxHash = trxTx?.txid ?? trxTx?.transaction?.txID ?? null
 
           if (trxTxHash) {
