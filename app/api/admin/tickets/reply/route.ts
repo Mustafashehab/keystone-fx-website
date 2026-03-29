@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
-
-// POST /api/admin/tickets/reply
-// Sends an admin reply to a ticket and optionally updates ticket status.
-// Uses service role to bypass RLS on ticket_messages table.
+import { createNotification } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +19,6 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createServiceRoleClient()
 
-    // Insert the message
     const { data: message, error: msgError } = await supabase
       .from('ticket_messages')
       .insert({
@@ -38,7 +34,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msgError.message }, { status: 500 })
     }
 
-    // Optionally update ticket status (e.g. open → in_progress on first reply)
     if (updateStatusTo) {
       const updates: Record<string, unknown> = {
         status:     updateStatusTo,
@@ -47,10 +42,26 @@ export async function POST(req: NextRequest) {
       if (updateStatusTo === 'resolved') {
         updates.resolved_at = new Date().toISOString()
       }
-      await supabase
-        .from('tickets')
-        .update(updates)
-        .eq('id', ticketId)
+      await supabase.from('tickets').update(updates).eq('id', ticketId)
+    }
+
+    // Get ticket to find client_id for notification
+    const { data: ticket } = await supabase
+      .from('tickets')
+      .select('client_id, subject')
+      .eq('id', ticketId)
+      .single()
+
+    if (ticket) {
+      // Notify client of admin reply
+      await createNotification({
+        recipient: 'client',
+        clientId:  ticket.client_id,
+        type:      'ticket_reply',
+        title:     'New reply on your ticket',
+        message:   `Support replied to: "${ticket.subject}"`,
+        link:      `/portal/support/${ticketId}`,
+      })
     }
 
     return NextResponse.json({ success: true, message })
@@ -58,9 +69,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
-
-// PATCH /api/admin/tickets/reply
-// Updates ticket status only (no message).
 
 export async function PATCH(req: NextRequest) {
   try {

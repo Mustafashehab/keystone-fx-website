@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createNotification } from '@/lib/notifications'
 
-const ATTESTATION_WINDOW_MS = 5 * 60 * 1000 // 5 minutes
+const ATTESTATION_WINDOW_MS = 5 * 60 * 1000
 
 export async function GET() {
   try {
@@ -39,15 +40,11 @@ export async function PATCH(req: NextRequest) {
     const { id, status, rejectionReason } = await req.json()
 
     if (!['approved', 'rejected'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status. Must be approved or rejected.' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid status.' }, { status: 400 })
     }
 
     const supabase = await createServiceRoleClient()
 
-    // Verify request exists and is pending
     const { data: request, error: fetchError } = await supabase
       .from('withdrawal_requests')
       .select('id, client_id, amount, wallet_address, status')
@@ -60,14 +57,11 @@ export async function PATCH(req: NextRequest) {
 
     if (request.status !== 'pending') {
       return NextResponse.json(
-        {
-          error: `Cannot ${status} a request that is already ${request.status}. Only pending requests can be acted on.`
-        },
+        { error: `Cannot ${status} a request that is already ${request.status}.` },
         { status: 409 }
       )
     }
 
-    // AML: wallet address must match client's registered deposit wallet
     const { data: clientWallet } = await supabase
       .from('client_wallets')
       .select('tron_address')
@@ -75,27 +69,17 @@ export async function PATCH(req: NextRequest) {
       .single()
 
     if (!clientWallet) {
-      return NextResponse.json(
-        { error: 'Client has no registered deposit wallet. Cannot verify withdrawal destination.' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Client has no registered deposit wallet.' }, { status: 400 })
     }
 
     if (clientWallet.tron_address !== request.wallet_address) {
       return NextResponse.json(
-        {
-          error: 'Withdrawal destination does not match client\'s registered deposit wallet. Approval blocked for compliance.',
-          registeredWallet: clientWallet.tron_address,
-          requestedWallet:  request.wallet_address,
-        },
+        { error: 'Withdrawal destination does not match registered wallet.', },
         { status: 400 }
       )
     }
 
     if (status === 'approved') {
-      // ATTESTATION CHECK: Admin must have submitted a fresh MT5 free margin attestation
-      // within the last 5 minutes before approving.
-      // Free margin = funds available after open positions and margin requirements.
       const { data: attestation, error: attestFetchError } = await supabase
         .from('withdrawal_attestations')
         .select('id, attested_balance, attested_at, used')
@@ -105,42 +89,27 @@ export async function PATCH(req: NextRequest) {
 
       if (attestFetchError || !attestation) {
         return NextResponse.json(
-          {
-            error: 'MT5 free margin attestation required. Please check the client\'s free margin in your MT5 Manager Terminal and submit an attestation before approving.',
-            code: 'attestation_missing',
-          },
+          { error: 'MT5 free margin attestation required.', code: 'attestation_missing' },
           { status: 400 }
         )
       }
 
       if (attestation.used) {
         return NextResponse.json(
-          {
-            error: 'This attestation has already been used. Please re-attest the MT5 free margin before approving.',
-            code: 'attestation_used',
-          },
+          { error: 'This attestation has already been used.', code: 'attestation_used' },
           { status: 400 }
         )
       }
 
-      const attestedAt = new Date(attestation.attested_at).getTime()
-      const ageMs = Date.now() - attestedAt
-
+      const ageMs = Date.now() - new Date(attestation.attested_at).getTime()
       if (ageMs > ATTESTATION_WINDOW_MS) {
         const minutesAgo = Math.floor(ageMs / 60000)
         return NextResponse.json(
-          {
-            error: `Attestation expired. It was submitted ${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago and is only valid for 5 minutes. Please re-attest the MT5 free margin.`,
-            code: 'attestation_expired',
-            attestedAt: attestation.attested_at,
-          },
+          { error: `Attestation expired ${minutesAgo} minute(s) ago.`, code: 'attestation_expired' },
           { status: 400 }
         )
       }
 
-      // All checks passed — call atomic rpc function
-      // Both the withdrawal status update and the financial_events insert
-      // happen in one Postgres transaction. If either fails, both roll back.
       const { error: rpcError } = await supabase.rpc('approve_withdrawal', {
         p_withdrawal_id:    id,
         p_reviewer_id:      user.id,
@@ -150,32 +119,32 @@ export async function PATCH(req: NextRequest) {
 
       if (rpcError) {
         if (rpcError.message?.includes('withdrawal_not_pending')) {
-          return NextResponse.json(
-            { error: 'This withdrawal was already processed by another admin.' },
-            { status: 409 }
-          )
+          return NextResponse.json({ error: 'Already processed.' }, { status: 409 })
         }
         if (rpcError.message?.includes('attestation_expired')) {
-          return NextResponse.json(
-            { error: 'Attestation expired during approval. Please re-attest the MT5 free margin.' },
-            { status: 400 }
-          )
+          return NextResponse.json({ error: 'Attestation expired during approval.' }, { status: 400 })
         }
         return NextResponse.json({ error: rpcError.message }, { status: 500 })
       }
+
+      // Notify client
+      await createNotification({
+        recipient: 'client',
+        clientId:  request.client_id,
+        type:      'withdrawal_approved',
+        title:     'Withdrawal Approved',
+        message:   `Your withdrawal of $${Number(request.amount).toFixed(2)} USDT has been approved and is being processed.`,
+        link:      '/portal/withdrawal',
+      })
 
       return NextResponse.json({ success: true, newStatus: 'approved' })
     }
 
     if (status === 'rejected') {
-      if (!rejectionReason || !rejectionReason.trim()) {
-        return NextResponse.json(
-          { error: 'A rejection reason is required.' },
-          { status: 400 }
-        )
+      if (!rejectionReason?.trim()) {
+        return NextResponse.json({ error: 'A rejection reason is required.' }, { status: 400 })
       }
 
-      // Atomic rejection — state + event in one transaction
       const { error: rpcError } = await supabase.rpc('reject_withdrawal', {
         p_withdrawal_id:    id,
         p_reviewer_id:      user.id,
@@ -184,13 +153,20 @@ export async function PATCH(req: NextRequest) {
 
       if (rpcError) {
         if (rpcError.message?.includes('withdrawal_not_pending')) {
-          return NextResponse.json(
-            { error: 'This withdrawal was already processed by another admin.' },
-            { status: 409 }
-          )
+          return NextResponse.json({ error: 'Already processed.' }, { status: 409 })
         }
         return NextResponse.json({ error: rpcError.message }, { status: 500 })
       }
+
+      // Notify client
+      await createNotification({
+        recipient: 'client',
+        clientId:  request.client_id,
+        type:      'withdrawal_rejected',
+        title:     'Withdrawal Rejected',
+        message:   `Your withdrawal of $${Number(request.amount).toFixed(2)} USDT was rejected. Reason: ${rejectionReason.trim()}`,
+        link:      '/portal/withdrawal',
+      })
 
       return NextResponse.json({ success: true, newStatus: 'rejected' })
     }
