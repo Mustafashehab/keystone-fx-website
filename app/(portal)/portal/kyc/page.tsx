@@ -433,6 +433,16 @@ export default function KYCPage() {
 
       if (kycErr) throw new Error(kycErr.message)
 
+      // Notify admin of KYC submission
+      await fetch('/api/notifications/kyc-submitted', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          clientId:   profile.id,
+          clientName: data.firstName + ' ' + data.lastName,
+        }),
+      })
+
       success('KYC submitted', 'Your information has been saved and is under review.')
       router.push('/portal/documents')
     } catch (err: unknown) {

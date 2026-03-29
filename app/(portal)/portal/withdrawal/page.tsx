@@ -36,16 +36,17 @@ export default function WithdrawalPage() {
   const supabase = createClient()
   const { success, error: toastError } = useToast()
 
-  const [profileId,         setProfileId]         = useState<string | null>(null)
-  const [kycApproved,       setKycApproved]       = useState(false)
-  const [registeredWallet,  setRegisteredWallet]  = useState<string | null>(null)
-  const [requests,          setRequests]          = useState<WithdrawalRequest[]>([])
-  const [loading,           setLoading]           = useState(true)
-  const [submitting,        setSubmitting]        = useState(false)
-  const [amount,            setAmount]            = useState('')
-  const [walletAddr,        setWalletAddr]        = useState('')
-  const [mt5Account,        setMt5Account]        = useState('')
-  const [addrError,         setAddrError]         = useState('')
+  const [profileId,        setProfileId]        = useState<string | null>(null)
+  const [profileName,      setProfileName]      = useState('')
+  const [kycApproved,      setKycApproved]      = useState(false)
+  const [registeredWallet, setRegisteredWallet] = useState<string | null>(null)
+  const [requests,         setRequests]         = useState<WithdrawalRequest[]>([])
+  const [loading,          setLoading]          = useState(true)
+  const [submitting,       setSubmitting]       = useState(false)
+  const [amount,           setAmount]           = useState('')
+  const [walletAddr,       setWalletAddr]       = useState('')
+  const [mt5Account,       setMt5Account]       = useState('')
+  const [addrError,        setAddrError]        = useState('')
 
   useEffect(() => {
     async function load() {
@@ -54,16 +55,15 @@ export default function WithdrawalPage() {
 
       const { data: profile } = await supabase
         .from('client_profiles')
-        .select('id, kyc_status')
+        .select('id, kyc_status, first_name, last_name')
         .eq('user_id', user.id)
         .single()
 
       if (!profile) { setLoading(false); return }
       setProfileId(profile.id)
+      setProfileName(`${profile.first_name} ${profile.last_name}`)
       setKycApproved(profile.kyc_status === 'approved')
 
-      // Load the client's registered deposit wallet address.
-      // This is used to validate withdrawal destination for AML compliance.
       const { data: wallet } = await supabase
         .from('client_wallets')
         .select('tron_address')
@@ -72,8 +72,6 @@ export default function WithdrawalPage() {
 
       if (wallet?.tron_address) {
         setRegisteredWallet(wallet.tron_address)
-        // Pre-fill the wallet address field with the registered wallet.
-        // Client should be withdrawing back to the same wallet they deposited from.
         setWalletAddr(wallet.tron_address)
       }
 
@@ -91,17 +89,13 @@ export default function WithdrawalPage() {
 
   function validateAddress(val: string) {
     setWalletAddr(val)
-    if (!val) {
-      setAddrError('')
-      return
-    }
+    if (!val) { setAddrError(''); return }
     if (!isValidTRC20(val)) {
       setAddrError('Invalid TRC-20 address. Must start with T and be 34 characters.')
       return
     }
-    // AML CHECK: Warn if the address doesn't match the registered deposit wallet
     if (registeredWallet && val !== registeredWallet) {
-      setAddrError('This address does not match your registered deposit wallet. For compliance, withdrawals must return to your original funding wallet.')
+      setAddrError('This address does not match your registered deposit wallet.')
       return
     }
     setAddrError('')
@@ -110,55 +104,37 @@ export default function WithdrawalPage() {
   async function submitRequest() {
     if (!profileId) return
 
-    // Amount validation
     const parsedAmount = Number(amount)
     if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
       toastError('Invalid amount', 'Please enter a valid amount greater than zero.')
       return
     }
-
-    // Minimum withdrawal
     if (parsedAmount < 10) {
       toastError('Amount too low', 'Minimum withdrawal amount is $10 USDT.')
       return
     }
-
-    // Address validation
     if (!isValidTRC20(walletAddr)) {
       toastError('Invalid address', 'Please enter a valid TRC-20 wallet address.')
       return
     }
-
-    // AML: Address must match registered deposit wallet
     if (registeredWallet && walletAddr !== registeredWallet) {
-      toastError(
-        'Address mismatch',
-        'For compliance, you can only withdraw to your registered deposit wallet address.'
-      )
+      toastError('Address mismatch', 'You can only withdraw to your registered deposit wallet.')
       return
     }
-
-    // MT5 account required
     if (!mt5Account.trim()) {
       toastError('Missing MT5 account', 'Please enter your MT5 account number.')
       return
     }
 
-    // IDEMPOTENCY CHECK: Prevent duplicate pending requests.
-    // If the client already has a pending withdrawal request, block submission.
-    // This prevents double-click and retry duplicates.
     const existingPending = requests.find(r => r.status === 'pending')
     if (existingPending) {
-      toastError(
-        'Request already pending',
-        'You already have a pending withdrawal request. Please wait for it to be reviewed before submitting another.'
-      )
+      toastError('Request already pending', 'You already have a pending withdrawal request.')
       return
     }
 
     setSubmitting(true)
     try {
-      const { error } = await supabase
+      const { data: newRequest, error } = await supabase
         .from('withdrawal_requests')
         .insert({
           client_id:      profileId,
@@ -167,15 +143,27 @@ export default function WithdrawalPage() {
           mt5_account:    mt5Account.trim(),
           status:         'pending',
         })
+        .select('id')
+        .single()
 
       if (error) throw new Error(error.message)
 
-      success('Request submitted', 'Your withdrawal request is under review. You will be notified of the outcome.')
+      // Notify admin of new withdrawal request
+      await fetch('/api/notifications/withdrawal-submitted', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          clientId:   profileId,
+          clientName: profileName,
+          amount:     parsedAmount,
+          requestId:  newRequest?.id,
+        }),
+      })
+
+      success('Request submitted', 'Your withdrawal request is under review.')
       setAmount('')
       setMt5Account('')
-      // Do not clear wallet address — it should stay as the registered wallet
 
-      // Refresh the request list
       const { data } = await supabase
         .from('withdrawal_requests')
         .select('id, amount, wallet_address, mt5_account, status, rejection_reason, created_at')
@@ -219,13 +207,12 @@ export default function WithdrawalPage() {
         {kycApproved && !registeredWallet && (
           <Alert variant="warning" title="No Deposit Wallet Found">
             You must make a deposit first before submitting a withdrawal request.
-            Please visit the Deposit page to generate your wallet.
           </Alert>
         )}
 
         {kycApproved && hasPendingRequest && (
           <Alert variant="info" title="Pending Request Active">
-            You have a pending withdrawal request under review. You cannot submit another until the current one is resolved.
+            You have a pending withdrawal request under review. You cannot submit another until it is resolved.
           </Alert>
         )}
 
@@ -237,7 +224,7 @@ export default function WithdrawalPage() {
 
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
               <p className="text-sm font-bold text-red-600">
-                ⚠️ For compliance, withdrawals can only be sent to your registered deposit wallet address. This cannot be changed.
+                ⚠️ For compliance, withdrawals can only be sent to your registered deposit wallet address.
               </p>
             </div>
 
@@ -280,17 +267,13 @@ export default function WithdrawalPage() {
                   onChange={(e) => validateAddress(e.target.value)}
                   placeholder="T..."
                   className={`w-full h-10 px-3 rounded-lg border text-sm text-[var(--kfx-text)] bg-white outline-none transition-colors font-mono ${
-                    addrError
-                      ? 'border-red-400 focus:border-red-500'
-                      : 'border-[var(--kfx-border)] focus:border-[var(--kfx-accent)]'
+                    addrError ? 'border-red-400' : 'border-[var(--kfx-border)] focus:border-[var(--kfx-accent)]'
                   }`}
                 />
-                {addrError && (
-                  <p className="text-xs text-red-500 mt-1">{addrError}</p>
-                )}
+                {addrError && <p className="text-xs text-red-500 mt-1">{addrError}</p>}
                 {registeredWallet && (
                   <p className="text-xs text-[var(--kfx-text-muted)] mt-1">
-                    Your registered deposit wallet: <span className="font-mono">{registeredWallet}</span>
+                    Your registered wallet: <span className="font-mono">{registeredWallet}</span>
                   </p>
                 )}
               </div>
@@ -324,9 +307,7 @@ export default function WithdrawalPage() {
                       ${Number(r.amount).toFixed(2)} USDT
                     </p>
                     {r.mt5_account && (
-                      <p className="text-xs text-[var(--kfx-text-muted)] mt-0.5">
-                        MT5: {r.mt5_account}
-                      </p>
+                      <p className="text-xs text-[var(--kfx-text-muted)] mt-0.5">MT5: {r.mt5_account}</p>
                     )}
                     <p className="text-xs text-[var(--kfx-text-muted)] font-mono truncate mt-0.5">
                       → {r.wallet_address}
@@ -339,9 +320,7 @@ export default function WithdrawalPage() {
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[r.status] ?? 'bg-gray-100 text-gray-500'}`}>
                       {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
                     </span>
-                    <p className="text-xs text-[var(--kfx-text-subtle)] mt-0.5">
-                      {formatDate(r.created_at)}
-                    </p>
+                    <p className="text-xs text-[var(--kfx-text-subtle)] mt-0.5">{formatDate(r.created_at)}</p>
                   </div>
                 </div>
               ))}
