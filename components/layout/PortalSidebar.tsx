@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 interface NavItem {
   label: string
@@ -54,20 +55,6 @@ const SettingsIcon = () => (
   </svg>
 )
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',           href: '/portal/dashboard',           icon: <DashboardIcon /> },
-  { label: 'KYC Verification',    href: '/portal/kyc',                 icon: <KYCIcon /> },
-  { label: 'Documents',           href: '/portal/documents',           icon: <DocumentIcon /> },
-  { label: 'Account Application', href: '/portal/account-application', icon: <AccountIcon /> },
-  { label: 'Deposit USDT',        href: '/portal/deposit',             icon: <DepositIcon /> },
-  { label: 'Withdraw USDT',       href: '/portal/withdrawal',          icon: <WithdrawIcon /> },
-  { label: 'Support',             href: '/portal/support',             icon: <SupportIcon /> },
-]
-
-const BOTTOM_ITEMS: NavItem[] = [
-  { label: 'Settings', href: '/portal/settings', icon: <SettingsIcon /> },
-]
-
 interface PortalSidebarProps {
   userName: string
   userEmail: string
@@ -77,6 +64,21 @@ interface PortalSidebarProps {
 export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { t } = usePortalI18n()
+
+  const NAV_ITEMS: NavItem[] = [
+    { label: t.nav.dashboard,          href: '/portal/dashboard',           icon: <DashboardIcon /> },
+    { label: t.nav.kyc,                href: '/portal/kyc',                 icon: <KYCIcon /> },
+    { label: t.nav.documents,          href: '/portal/documents',           icon: <DocumentIcon /> },
+    { label: t.nav.accountApplication, href: '/portal/account-application', icon: <AccountIcon /> },
+    { label: t.nav.deposit,            href: '/portal/deposit',             icon: <DepositIcon /> },
+    { label: t.nav.withdrawal,         href: '/portal/withdrawal',          icon: <WithdrawIcon /> },
+    { label: t.nav.support,            href: '/portal/support',             icon: <SupportIcon /> },
+  ]
+
+  const BOTTOM_ITEMS: NavItem[] = [
+    { label: t.nav.settings, href: '/portal/settings', icon: <SettingsIcon /> },
+  ]
 
   return (
     <>
@@ -91,7 +93,7 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
         </svg>
       </button>
 
-      {/* Dark overlay — mobile only, shown when sidebar is open */}
+      {/* Dark overlay — mobile only */}
       {open && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/50"
@@ -99,14 +101,12 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
         />
       )}
 
-      {/* Sidebar — fixed on mobile (overlays content), sticky on desktop (in flow) */}
+      {/* Sidebar */}
       <aside
         className={cn(
           'fixed top-0 left-0 h-screen z-50 flex flex-col bg-white border-r border-[#e5e7eb] transition-transform duration-300 ease-in-out',
-          // Mobile: slide in/out
           'w-72',
           open ? 'translate-x-0' : '-translate-x-full',
-          // Desktop: always visible, in normal flow
           'md:relative md:w-64 md:translate-x-0 md:z-auto'
         )}
       >
@@ -117,7 +117,7 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
               Keystone <span className="text-[#94a3b8]">FX</span>
             </p>
             <p className="text-[10px] text-[#94a3b8] tracking-widest uppercase mt-1">
-              Client Portal
+              {t.nav.clientPortal}
             </p>
           </div>
           {/* Close button — mobile only */}
@@ -164,7 +164,7 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
               onClick={onSignOut}
               className="mt-3 text-[11px] text-[#64748b] hover:text-red-500 transition"
             >
-              Sign out
+              {t.nav.signOut}
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { getClientProfile } from '@/lib/dal/clients'
 import { PortalSidebarClient } from '@/components/layout/PortalSidebarClient'
 import { ToastProvider } from '@/components/ui/Toast'
 import { PortalWhatsAppButton } from '@/components/layout/PortalWhatsAppButton'
+import { PortalI18nProvider } from '@/lib/portal-i18n'
 
 export default async function PortalLayout({
   children,
@@ -31,28 +32,28 @@ export default async function PortalLayout({
     : user.email?.split('@')[0] ?? 'Client'
 
   return (
-    <ToastProvider>
-      <div className="flex h-screen overflow-hidden bg-[var(--kfx-bg)]">
+    <PortalI18nProvider>
+      <ToastProvider>
+        <div className="flex h-screen overflow-hidden bg-[var(--kfx-bg)]">
 
-        <PortalSidebarClient
-          userName={fullName}
-          userEmail={user.email ?? ''}
-        />
+          <PortalSidebarClient
+            userName={fullName}
+            userEmail={user.email ?? ''}
+          />
 
-        {/* Main content — full width on mobile, flex-1 on desktop */}
-        <div className="flex flex-1 flex-col overflow-hidden w-full min-w-0">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.06),transparent_40%)]" />
-          <main className="relative flex-1 overflow-y-auto">
-            {/* Top padding on mobile to account for hamburger button */}
-            <div className="pt-14 md:pt-0">
-              {children}
-            </div>
-          </main>
+          <div className="flex flex-1 flex-col overflow-hidden w-full min-w-0">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.06),transparent_40%)]" />
+            <main className="relative flex-1 overflow-y-auto">
+              <div className="pt-14 md:pt-0">
+                {children}
+              </div>
+            </main>
+          </div>
+
+          <PortalWhatsAppButton />
+
         </div>
-
-        <PortalWhatsAppButton />
-
-      </div>
-    </ToastProvider>
+      </ToastProvider>
+    </PortalI18nProvider>
   )
 }
