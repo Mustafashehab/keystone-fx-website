@@ -48,14 +48,12 @@ function WhatsAppBlock() {
             Withdrawals are currently unavailable. Please contact our support team on WhatsApp and we will assist you directly.
           </p>
         </div>
-        
-          href={WHATSAPP_LINK}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+        <button
+          onClick={() => window.open(WHATSAPP_LINK, '_blank')}
+          className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
         >
           Contact Support on WhatsApp
-        </a>
+        </button>
       </div>
     </div>
   )
