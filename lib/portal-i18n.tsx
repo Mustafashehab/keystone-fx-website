@@ -4,7 +4,25 @@ import { createContext, useContext, useState, useEffect } from 'react'
 
 export type PortalLang = 'en' | 'ar'
 
-const translations = {
+type Dir = 'ltr' | 'rtl'
+
+interface PortalTranslations {
+  nav: {
+    dashboard: string
+    kyc: string
+    documents: string
+    accountApplication: string
+    deposit: string
+    withdrawal: string
+    support: string
+    settings: string
+    signOut: string
+    clientPortal: string
+  }
+  dir: Dir
+}
+
+const translations: Record<PortalLang, PortalTranslations> = {
   en: {
     nav: {
       dashboard:          'Dashboard',
@@ -18,7 +36,7 @@ const translations = {
       signOut:            'Sign out',
       clientPortal:       'Client Portal',
     },
-    dir: 'ltr' as const,
+    dir: 'ltr',
   },
   ar: {
     nav: {
@@ -33,13 +51,13 @@ const translations = {
       signOut:            'تسجيل الخروج',
       clientPortal:       'بوابة العميل',
     },
-    dir: 'rtl' as const,
+    dir: 'rtl',
   },
 }
 
 interface PortalI18nContextValue {
   lang:   PortalLang
-  t:      typeof translations['en']
+  t:      PortalTranslations
   toggle: () => void
 }
 
@@ -63,7 +81,7 @@ export function PortalI18nProvider({ children }: { children: React.ReactNode }) 
   }, [lang])
 
   function toggle() {
-    const next = lang === 'en' ? 'ar' : 'en'
+    const next: PortalLang = lang === 'en' ? 'ar' : 'en'
     setLang(next)
     localStorage.setItem('portal-lang', next)
   }
