@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 interface PortalHeaderProps {
   title: string
@@ -20,6 +21,7 @@ export function PortalHeader({
 }: PortalHeaderProps) {
   const supabase = createClient()
   const [clientId, setClientId] = useState<string | null>(null)
+  const { lang, toggle } = usePortalI18n()
 
   useEffect(() => {
     async function load() {
@@ -57,6 +59,17 @@ export function PortalHeader({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+
+          {/* Language toggle */}
+          <button
+            onClick={toggle}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--kfx-border)] bg-[var(--kfx-surface)] hover:bg-[var(--kfx-surface-raised)] transition-colors text-xs font-semibold text-[var(--kfx-text-muted)] hover:text-[var(--kfx-text)]"
+            title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+          >
+            <span className="text-sm">{lang === 'en' ? '🇸🇦' : '🇬🇧'}</span>
+            <span>{lang === 'en' ? 'العربية' : 'English'}</span>
+          </button>
+
           {clientId && (
             <NotificationBell recipient="client" clientId={clientId} />
           )}
