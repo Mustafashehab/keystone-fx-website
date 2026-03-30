@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createClientWallet, getClientWallet } from '@/lib/tron/wallet'
+import { createNotification } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await supabase
       .from('client_profiles')
-      .select('id, kyc_status')
+      .select('id, kyc_status, first_name, last_name')
       .eq('user_id', user.id)
       .single()
 
@@ -27,6 +28,16 @@ export async function POST(req: NextRequest) {
 
     const { address, error } = await createClientWallet(profile.id)
     if (error) return NextResponse.json({ error }, { status: 500 })
+
+    // Notify admin that a new deposit wallet was generated
+    await createNotification({
+      recipient: 'admin',
+      clientId:  profile.id,
+      type:      'wallet.created',
+      title:     'New Deposit Wallet Generated',
+      message:   `${profile.first_name} ${profile.last_name} has generated a new TRON deposit wallet. Address: ${address}`,
+      link:      '/admin/clients',
+    })
 
     return NextResponse.json({ address })
   } catch (err: unknown) {
