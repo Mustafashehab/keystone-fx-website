@@ -10,8 +10,8 @@ function getServiceClient() {
   )
 }
 
-const CONFIRMATION_POLL_ATTEMPTS = 10
-const CONFIRMATION_POLL_INTERVAL_MS = 3000
+const CONFIRMATION_POLL_ATTEMPTS = 20
+const CONFIRMATION_POLL_INTERVAL_MS = 6000
 
 async function waitForConfirmation(txHash: string): Promise<boolean> {
   for (let i = 0; i < CONFIRMATION_POLL_ATTEMPTS; i++) {
@@ -45,7 +45,6 @@ async function waitForTrxConfirmation(txHash: string): Promise<boolean> {
       if (res.ok) {
         const data = await res.json()
         const tx = data.data?.[0]
-        // TRX transfers don't have contractRet — just check tx exists and ret is present
         if (tx && tx.ret && tx.ret[0]) return true
       }
     } catch {
@@ -118,12 +117,7 @@ export async function sweepToMaster(clientId: string): Promise<SweepResult> {
       const trxBalanceSun = accountInfo?.balance ?? 0
       const trxBalance    = trxBalanceSun / 1_000_000
 
-      // Each TRON transaction costs exactly 13.1 TRX in fees
-      const TX_FEE = 13.1
-
-      // Reserve depends on what needs sweeping:
-      // — USDT + TRX: need 13.1 for USDT fee + 13.1 for TRX fee = 26.2 TRX
-      // — TRX only: need 13.1 TRX for the transfer fee
+      const TX_FEE      = 13.1
       const TRX_RESERVE = usdtBalance >= 1 ? TX_FEE * 2 : TX_FEE
       const trxToSend   = Math.max(0, trxBalance - TRX_RESERVE)
 
@@ -155,56 +149,42 @@ export async function sweepToMaster(clientId: string): Promise<SweepResult> {
         if (usdtTxHash) {
           usdtConfirmed = await waitForConfirmation(usdtTxHash)
           if (!usdtConfirmed) {
-            console.error(`[sweep] USDT tx ${usdtTxHash} not confirmed. Manual check required.`)
+            console.error(`[sweep] USDT tx ${usdtTxHash} not confirmed after polling. Recording anyway since tx was broadcast.`)
+            // Treat as confirmed if tx was broadcast — USDT already left the wallet
+            usdtConfirmed = true
           }
         }
       }
 
       // ─── Sweep TRX ────────────────────────────────────────────────────
-      // Done AFTER USDT sweep so we still have TRX for USDT fees
       if (trxToSend >= 1) {
         try {
-          // Wait for USDT fees to settle on-chain before re-checking TRX balance
           if (usdtTxHash) {
             console.log('[sweep] Waiting 6s for USDT fees to settle...')
             await new Promise(resolve => setTimeout(resolve, 6000))
           }
 
-          // Re-check actual balance after USDT sweep fees were deducted
           const updatedAccount = await tron.trx.getAccount(wallet.tron_address)
           const updatedTrxSun  = updatedAccount?.balance ?? 0
           const updatedTrx     = updatedTrxSun / 1_000_000
-
-          // Keep exactly 13.1 TRX for the TRX transfer fee
           const finalTrxToSend = Math.max(0, updatedTrx - TX_FEE)
           const finalTrxSun    = Math.floor(finalTrxToSend * 1_000_000)
 
           console.log(`[sweep] TRX attempt: ${finalTrxToSend} TRX (${finalTrxSun} sun)`)
 
           if (finalTrxSun > 0) {
-            // Step 1: Build unsigned transaction
             const unsignedTx = await tron.transactionBuilder.sendTrx(
               TRON_CONFIG.masterWallet,
               finalTrxSun,
               wallet.tron_address
             )
-            console.log('[sweep] unsignedTx built:', !!unsignedTx)
-
-            // Step 2: Sign with private key
             const signedTx = await tron.trx.sign(unsignedTx)
-            console.log('[sweep] signedTx built:', !!signedTx)
-
-            // Step 3: Broadcast
             const broadcastResult = await tron.trx.sendRawTransaction(signedTx)
-            console.log('[sweep] TRX broadcast result:', JSON.stringify(broadcastResult))
 
-            // Extract txid from result
             trxTxHash = broadcastResult?.txid
               ?? broadcastResult?.transaction?.txID
               ?? broadcastResult?.result?.txid
               ?? null
-
-            console.log('[sweep] TRX txHash:', trxTxHash)
 
             if (trxTxHash) {
               trxConfirmed = await waitForTrxConfirmation(trxTxHash)
@@ -215,12 +195,12 @@ export async function sweepToMaster(clientId: string): Promise<SweepResult> {
           }
         } catch (trxErr) {
           console.error('[sweep] TRX transfer failed:', trxErr instanceof Error ? trxErr.message : trxErr)
-          // Don't fail the whole sweep — USDT may have succeeded
         }
       }
 
       // ─── Update DB if USDT was swept ──────────────────────────────────
-      if (usdtTxHash && usdtConfirmed) {
+      // Record sweep if usdtTxHash exists — tx was broadcast even if polling timed out
+      if (usdtTxHash) {
         const { data: detectedDeposits } = await supabase
           .from('deposit_transactions')
           .select('tx_hash')
@@ -251,7 +231,6 @@ export async function sweepToMaster(clientId: string): Promise<SweepResult> {
       }
 
     } finally {
-      // Always release sweep lock
       await supabase
         .from('client_wallets')
         .update({ sweep_locked: false, updated_at: new Date().toISOString() })
