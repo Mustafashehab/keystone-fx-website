@@ -19,25 +19,19 @@ export default function NavBar() {
     return parts.join("/");
   };
 
-  const handleWhatsAppClick = () => {
-    const phoneNumber = "447511648370";
-    const message = "Hello! I'm interested in learning more about Keystone FX.";
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-  };
-
   const navItems = [
-    { key: "products", path: "products" },
+    { key: "products",  path: "products" },
     { key: "platforms", path: "platforms" },
-    { key: "accounts", path: "accounts" },
-    { key: "about", path: "about" },
-    { key: "contact", path: "contact" },
+    { key: "accounts",  path: "accounts" },
+    { key: "about",     path: "about" },
+    { key: "contact",   path: "contact" },
   ];
 
   return (
     <header className="border-b bg-white">
       <div className="mx-auto flex h-[100px] md:h-[150px] max-w-6xl items-center justify-between px-4 md:px-10">
-        
+
+        {/* Logo */}
         <Link href={`/${lang}`} className="flex items-center gap-2 md:gap-4">
           <div className="relative h-[60px] w-[60px] md:h-[120px] md:w-[120px] shrink-0">
             <Image
@@ -48,7 +42,6 @@ export default function NavBar() {
               className="object-contain"
             />
           </div>
-
           <div className="leading-tight">
             <div className="text-sm md:text-lg font-semibold tracking-wide">
               KEYSTONE <span className="text-yellow-600">FX</span>
@@ -59,6 +52,7 @@ export default function NavBar() {
           </div>
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden md:flex gap-6 text-sm flex-1 justify-center ml-[-100px]">
           {navItems.map((item) => (
             <Link
@@ -71,14 +65,17 @@ export default function NavBar() {
           ))}
         </nav>
 
+        {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-6">
-          <button 
-            onClick={handleWhatsAppClick}
+          {/* Sign In → portal login */}
+          <Link
+            href="/portal/login"
             className="text-sm font-medium text-slate-700 hover:text-yellow-600 transition-colors"
           >
             {t(lang, "nav.signin")}
-          </button>
+          </Link>
 
+          {/* Language switcher */}
           <div className="text-sm whitespace-nowrap text-slate-600">
             <Link href={swapLang("en")} className="hover:text-yellow-600">EN</Link>
             {" | "}
@@ -88,17 +85,19 @@ export default function NavBar() {
           </div>
         </div>
 
+        {/* Mobile hamburger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden flex flex-col gap-1.5 p-2 z-50"
           aria-label="Toggle menu"
         >
-          <span className={`block h-0.5 w-6 bg-slate-700 transition-all ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
-          <span className={`block h-0.5 w-6 bg-slate-700 transition-all ${mobileMenuOpen ? 'opacity-0' : ''}`}></span>
-          <span className={`block h-0.5 w-6 bg-slate-700 transition-all ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+          <span className={`block h-0.5 w-6 bg-slate-700 transition-all ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+          <span className={`block h-0.5 w-6 bg-slate-700 transition-all ${mobileMenuOpen ? 'opacity-0' : ''}`} />
+          <span className={`block h-0.5 w-6 bg-slate-700 transition-all ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
         </button>
       </div>
 
+      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t bg-white">
           <nav className="flex flex-col px-4 py-4 gap-4">
@@ -112,17 +111,17 @@ export default function NavBar() {
                 {t(lang, `nav.${item.key}`)}
               </Link>
             ))}
-            
-            <button 
-              onClick={() => {
-                handleWhatsAppClick();
-                setMobileMenuOpen(false);
-              }}
-              className="text-sm font-medium text-slate-700 hover:text-yellow-600 transition-colors py-2 text-left"
+
+            {/* Sign In → portal login */}
+            <Link
+              href="/portal/login"
+              className="text-sm font-medium text-slate-700 hover:text-yellow-600 transition-colors py-2"
+              onClick={() => setMobileMenuOpen(false)}
             >
               {t(lang, "nav.signin")}
-            </button>
+            </Link>
 
+            {/* Language switcher */}
             <div className="text-sm text-slate-600 py-2 border-t">
               <Link href={swapLang("en")} className="hover:text-yellow-600" onClick={() => setMobileMenuOpen(false)}>EN</Link>
               {" | "}
