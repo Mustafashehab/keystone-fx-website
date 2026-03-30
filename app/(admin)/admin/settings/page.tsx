@@ -14,18 +14,31 @@ export default function AdminSettingsPage() {
   const supabase = createClient()
   const { success, error: toastError } = useToast()
 
-  const [email,       setEmail]       = useState('')
-  const [newPwd,      setNewPwd]      = useState('')
-  const [confirmPwd,  setConfirmPwd]  = useState('')
-  const [pwdError,    setPwdError]    = useState<string | null>(null)
-  const [savingEmail, setSavingEmail] = useState(false)
-  const [savingPwd,   setSavingPwd]   = useState(false)
+  const [email,           setEmail]           = useState('')
+  const [newPwd,          setNewPwd]          = useState('')
+  const [confirmPwd,      setConfirmPwd]      = useState('')
+  const [pwdError,        setPwdError]        = useState<string | null>(null)
+  const [savingEmail,     setSavingEmail]     = useState(false)
+  const [savingPwd,       setSavingPwd]       = useState(false)
+
+  // Maintenance toggle state
+  const [financialEnabled,   setFinancialEnabled]   = useState(true)
+  const [loadingToggle,      setLoadingToggle]      = useState(true)
+  const [savingToggle,       setSavingToggle]       = useState(false)
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/admin/login'); return }
       setEmail(user.email ?? '')
+
+      // Load platform settings
+      const res = await fetch('/api/admin/settings')
+      if (res.ok) {
+        const data = await res.json()
+        setFinancialEnabled(data.financial_services_enabled)
+      }
+      setLoadingToggle(false)
     }
     load()
   }, [supabase, router])
@@ -51,12 +64,74 @@ export default function AdminSettingsPage() {
     setConfirmPwd('')
   }
 
+  async function handleToggleFinancial() {
+    setSavingToggle(true)
+    const newValue = !financialEnabled
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ financial_services_enabled: newValue }),
+      })
+      if (!res.ok) {
+        toastError('Failed', 'Could not update financial services toggle.')
+        return
+      }
+      setFinancialEnabled(newValue)
+      success(
+        newValue ? 'Financial services enabled' : 'Financial services disabled',
+        newValue
+          ? 'Clients can now deposit and withdraw normally.'
+          : 'Deposit and withdrawal pages now show the WhatsApp support message.'
+      )
+    } catch {
+      toastError('Network error', 'Could not reach server.')
+    } finally {
+      setSavingToggle(false)
+    }
+  }
+
   return (
     <div>
       <AdminHeader title="Settings" subtitle="Administrator account and platform configuration" />
 
       <div className="p-6 max-w-xl space-y-5">
 
+        {/* ── Maintenance Toggle ─────────────────────────────────────── */}
+        <Section title="Financial Services">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-[var(--kfx-text)]">
+                Deposit &amp; Withdrawal
+              </p>
+              <p className="text-xs text-[var(--kfx-text-muted)] mt-0.5">
+                {financialEnabled
+                  ? 'Currently active — clients can deposit and withdraw.'
+                  : 'Currently disabled — clients see WhatsApp support message.'}
+              </p>
+            </div>
+            <button
+              onClick={handleToggleFinancial}
+              disabled={savingToggle || loadingToggle}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                financialEnabled ? 'bg-green-500' : 'bg-red-500'
+              } ${savingToggle || loadingToggle ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  financialEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          {!financialEnabled && (
+            <p className="text-xs text-amber-600 mt-3 bg-amber-50 px-3 py-2 rounded">
+              ⚠ Financial services are OFF. Clients cannot deposit or withdraw until this is re-enabled.
+            </p>
+          )}
+        </Section>
+
+        {/* ── Account ───────────────────────────────────────────────── */}
         <Section title="Account">
           <div className="space-y-4">
             <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -66,6 +141,7 @@ export default function AdminSettingsPage() {
           </div>
         </Section>
 
+        {/* ── Password ──────────────────────────────────────────────── */}
         <Section title="Change Password">
           <div className="space-y-4">
             {pwdError && <Alert variant="error">{pwdError}</Alert>}
@@ -77,23 +153,25 @@ export default function AdminSettingsPage() {
           </div>
         </Section>
 
+        {/* ── Platform Info ─────────────────────────────────────────── */}
         <Section title="Platform Info">
           <div className="space-y-3">
             {[
-              { label: 'Platform',  value: 'Keystone FX Client Portal' },
-              { label: 'Version',   value: 'MVP 1.0' },
-              { label: 'Framework', value: 'Next.js 15 App Router' },
-              { label: 'Database',  value: 'Supabase Postgres' },
-              { label: 'Auth',      value: 'Supabase Auth' },
-              { label: 'Storage',   value: 'Supabase Storage' },
+              { label: 'Platform',   value: 'Keystone FX Client Portal' },
+              { label: 'Version',    value: 'MVP 1.0' },
+              { label: 'Framework',  value: 'Next.js 15 App Router' },
+              { label: 'Database',   value: 'Supabase Postgres' },
+              { label: 'Auth',       value: 'Supabase Auth' },
+              { label: 'Storage',    value: 'Supabase Storage' },
             ].map(({ label, value }) => (
-              <div key={label} className="flex items-center justify-between py-2 border-b border-[#f1f5f9] last:border-0">
-                <p className="text-xs text-[#94a3b8]">{label}</p>
-                <p className="text-xs font-medium text-[#0f172a]">{value}</p>
+              <div key={label} className="flex justify-between text-sm">
+                <span className="text-[var(--kfx-text-muted)]">{label}</span>
+                <span className="text-[var(--kfx-text)] font-medium">{value}</span>
               </div>
             ))}
           </div>
         </Section>
+
       </div>
     </div>
   )
@@ -101,11 +179,9 @@ export default function AdminSettingsPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-[#e5e7eb] bg-white overflow-hidden">
-      <div className="px-5 py-3 border-b border-[#f1f5f9] bg-[#f8fafc]">
-        <p className="text-xs font-semibold text-[#64748b] uppercase tracking-widest">{title}</p>
-      </div>
-      <div className="p-5">{children}</div>
+    <div className="bg-[var(--kfx-surface)] border border-[var(--kfx-border)] rounded-xl p-5">
+      <h2 className="text-sm font-semibold text-[var(--kfx-text)] mb-4">{title}</h2>
+      {children}
     </div>
   )
 }
