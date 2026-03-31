@@ -1,4 +1,5 @@
 import { Lang, t } from "@/lib/i18n";
+import AboutAllianceBlock from "@/components/partnership/AboutAllianceBlock";
 
 interface Stat   { value: string; label: string }
 interface Reason { icon: string; title: string; description: string }
@@ -78,6 +79,9 @@ export default async function About({ params }: { params: Promise<{ lang: Lang }
           </div>
         </div>
       </section>
+
+      {/* STRATEGIC ALLIANCE BLOCK */}
+      <AboutAllianceBlock lang={lang} />
 
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-12 text-center text-white shadow-2xl">
