@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
@@ -18,7 +17,6 @@ const ACCOUNT_TYPE_OPTIONS = [
 ]
 
 export default function PortalRegisterPage() {
-  const router = useRouter()
   const supabase = createClient()
   const [serverError, setServerError] = useState<string | null>(null)
   const [success,     setSuccess]     = useState(false)
@@ -53,8 +51,6 @@ export default function PortalRegisterPage() {
       return
     }
 
-    // Notify admin of new client registration
-    // Fire and forget — don't block the success state
     fetch('/api/notifications/client-registered', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,9 +59,7 @@ export default function PortalRegisterPage() {
         email:       data.email,
         accountType: data.accountType,
       }),
-    }).catch(() => {
-      // Non-critical — ignore errors
-    })
+    }).catch(() => {})
 
     setSuccess(true)
   }

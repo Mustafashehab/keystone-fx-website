@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 declare global {
   interface Window {
@@ -9,11 +9,7 @@ declare global {
 }
 
 export default function WhatsAppButton() {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
+  const [isVisible] = useState(true);
 
   const handleWhatsAppClick = () => {
     const phoneNumber = "447511648370";

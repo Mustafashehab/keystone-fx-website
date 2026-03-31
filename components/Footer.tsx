@@ -1,6 +1,4 @@
-import { Lang } from "@/lib/i18n";
-
-export default function Footer({ lang }: { lang: Lang }) {
+export default function Footer() {
   return (
     <footer className="border-t bg-slate-900 text-white">
       <div className="mx-auto max-w-6xl px-6 py-8">
