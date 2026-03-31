@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { AdminHeader, AdminFilterBar } from '@/components/layout/AdminHeader'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
 import type { WithdrawalRequestWithClient } from '@/types'
 
-const ATTESTATION_WINDOW_MS = 5 * 60 * 1000 // 5 minutes — must match server
+const ATTESTATION_WINDOW_MS = 5 * 60 * 1000
 
 const STATUS_FILTERS = [
   { label: 'All',       value: 'all' },
@@ -46,23 +46,23 @@ export default function AdminWithdrawalsPage() {
   const [attestations, setAttestations] = useState<Record<string, AttestationState>>({})
   const [attesting,    setAttesting]    = useState(false)
 
-  // Re-render every second to keep countdown live
   const [, setTick] = useState(0)
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 1000)
     return () => clearInterval(interval)
   }, [])
 
+  const load = useCallback(async () => {
+    const res = await fetch('/api/admin/withdrawals')
+    if (!res.ok) { toastError('Load failed', 'Could not load withdrawal requests'); setLoading(false); return }
+    const data = await res.json()
+    setRequests(data ?? [])
+    setLoading(false)
+  }, [toastError])
+
   useEffect(() => {
-    async function load() {
-      const res = await fetch('/api/admin/withdrawals')
-      if (!res.ok) { toastError('Load failed', 'Could not load withdrawal requests'); setLoading(false); return }
-      const data = await res.json()
-      setRequests(data ?? [])
-      setLoading(false)
-    }
     load()
-  }, [])
+  }, [load])
 
   const filtered = useMemo(() => {
     return requests.filter((r) => {
@@ -264,8 +264,6 @@ export default function AdminWithdrawalsPage() {
               }`}>
                 <div className="flex items-start gap-4">
                   <div className="flex-1 min-w-0">
-
-                    {/* Client + status */}
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <p className="text-sm font-semibold text-[#0f172a]">
                         {r.client_profiles?.first_name} {r.client_profiles?.last_name}
@@ -275,9 +273,7 @@ export default function AdminWithdrawalsPage() {
                       </span>
                     </div>
 
-                    <p className="text-sm text-[#0f172a] font-medium">
-                      ${Number(r.amount).toFixed(2)} USDT
-                    </p>
+                    <p className="text-sm text-[#0f172a] font-medium">${Number(r.amount).toFixed(2)} USDT</p>
 
                     {r.mt5_account && (
                       <p className="text-xs text-[#64748b] mt-0.5">
@@ -285,27 +281,17 @@ export default function AdminWithdrawalsPage() {
                       </p>
                     )}
 
-                    <p className="text-xs text-[#64748b] font-mono mt-0.5 truncate">
-                      → {r.wallet_address}
-                    </p>
-
+                    <p className="text-xs text-[#64748b] font-mono mt-0.5 truncate">→ {r.wallet_address}</p>
                     <p className="text-xs text-[#94a3b8] mt-0.5">{formatDate(r.created_at)}</p>
 
                     {r.rejection_reason && (
-                      <p className="text-xs text-red-500 mt-1 font-medium">
-                        Rejected: {r.rejection_reason}
-                      </p>
+                      <p className="text-xs text-red-500 mt-1 font-medium">Rejected: {r.rejection_reason}</p>
                     )}
 
-                    {/* Free margin attestation indicator */}
                     {r.status === 'pending' && att.valid && (
                       <div className="mt-2 flex items-center gap-1.5">
-                        <div className={`w-2 h-2 rounded-full animate-pulse ${
-                          isInsufficientMargin ? 'bg-red-500' : 'bg-green-500'
-                        }`} />
-                        <p className={`text-xs font-medium ${
-                          isInsufficientMargin ? 'text-red-600' : 'text-green-600'
-                        }`}>
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${isInsufficientMargin ? 'bg-red-500' : 'bg-green-500'}`} />
+                        <p className={`text-xs font-medium ${isInsufficientMargin ? 'text-red-600' : 'text-green-600'}`}>
                           {isInsufficientMargin
                             ? `MT5 free margin $${att.freeMargin?.toFixed(2)} is insufficient to cover $${Number(r.amount).toFixed(2)} withdrawal — reject required`
                             : `Free margin attested: $${att.freeMargin?.toFixed(2)} — expires in ${att.secondsLeft}s`
@@ -314,13 +300,10 @@ export default function AdminWithdrawalsPage() {
                       </div>
                     )}
 
-                    {/* Free margin input */}
                     {attestingId === r.id && (
                       <div className="mt-3 space-y-2">
                         <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-                          <p className="text-xs font-semibold text-amber-700 mb-1">
-                            MT5 Free Margin Attestation Required
-                          </p>
+                          <p className="text-xs font-semibold text-amber-700 mb-1">MT5 Free Margin Attestation Required</p>
                           <p className="text-xs text-amber-600">
                             Open your MT5 Manager Terminal and check the client's account free margin.
                             Free margin is the funds available after open positions and margin requirements.
@@ -331,24 +314,17 @@ export default function AdminWithdrawalsPage() {
                           <div className="relative flex-1">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#64748b]">$</span>
                             <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={marginInput}
-                              onChange={(e) => setMarginInput(e.target.value)}
-                              placeholder="0.00"
-                              autoFocus
+                              type="number" min="0" step="0.01"
+                              value={marginInput} onChange={(e) => setMarginInput(e.target.value)}
+                              placeholder="0.00" autoFocus
                               className="w-full h-9 pl-6 pr-3 rounded-lg border border-[#e2e8f0] text-sm text-[#0f172a] outline-none focus:border-amber-400"
                             />
                           </div>
-                          <button
-                            onClick={() => submitAttestation(r.id)}
-                            disabled={attesting || !marginInput.trim()}
+                          <button onClick={() => submitAttestation(r.id)} disabled={attesting || !marginInput.trim()}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-white disabled:opacity-40">
                             {attesting ? 'Recording…' : 'Attest Free Margin'}
                           </button>
-                          <button
-                            onClick={() => { setAttestingId(null); setMarginInput('') }}
+                          <button onClick={() => { setAttestingId(null); setMarginInput('') }}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[#e2e8f0] text-[#64748b]">
                             Cancel
                           </button>
@@ -356,29 +332,19 @@ export default function AdminWithdrawalsPage() {
                       </div>
                     )}
 
-                    {/* Rejection input */}
                     {rejectingId === r.id && (
                       <div className="mt-3 space-y-2">
-                        <p className="text-xs font-medium text-[#64748b]">
-                          Rejection reason (required — client will see this):
-                        </p>
+                        <p className="text-xs font-medium text-[#64748b]">Rejection reason (required — client will see this):</p>
                         <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={rejectReason}
-                            onChange={(e) => setRejectReason(e.target.value)}
-                            placeholder="e.g. Insufficient MT5 free margin, address mismatch…"
-                            autoFocus
+                          <input type="text" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="e.g. Insufficient MT5 free margin, address mismatch…" autoFocus
                             className="flex-1 h-9 px-3 rounded-lg border border-[#e2e8f0] text-sm text-[#0f172a] outline-none focus:border-[#94a3b8]"
                           />
-                          <button
-                            onClick={() => executeReject(r.id)}
-                            disabled={!rejectReason.trim() || processing === r.id}
+                          <button onClick={() => executeReject(r.id)} disabled={!rejectReason.trim() || processing === r.id}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500 text-white disabled:opacity-40">
                             {processing === r.id ? 'Rejecting…' : 'Confirm Reject'}
                           </button>
-                          <button
-                            onClick={() => { setRejectingId(null); setRejectReason('') }}
+                          <button onClick={() => { setRejectingId(null); setRejectReason('') }}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[#e2e8f0] text-[#64748b]">
                             Cancel
                           </button>
@@ -387,59 +353,39 @@ export default function AdminWithdrawalsPage() {
                     )}
                   </div>
 
-                  {/* Action buttons */}
                   {r.status === 'pending' && !isActing && (
                     <div className="flex flex-col items-end gap-2 shrink-0">
-
                       {att.valid ? (
                         isInsufficientMargin ? (
-                          // Free margin too low — Approve blocked, force reject
                           <div className="flex flex-col items-end gap-1.5">
                             <div className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-600 border border-red-300 cursor-not-allowed">
                               ✕ Cannot Approve
                             </div>
                             <button
-                              onClick={() => {
-                                setRejectingId(r.id)
-                                setRejectReason('Insufficient MT5 free margin')
-                                setAttestingId(null)
-                              }}
+                              onClick={() => { setRejectingId(r.id); setRejectReason('Insufficient MT5 free margin'); setAttestingId(null) }}
                               disabled={processing === r.id}
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
                               Reject (Insufficient Margin)
                             </button>
                           </div>
                         ) : (
-                          // Free margin sufficient — show Approve with countdown
-                          <button
-                            onClick={() => executeApprove(r.id)}
-                            disabled={processing === r.id}
+                          <button onClick={() => executeApprove(r.id)} disabled={processing === r.id}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-50">
                             {processing === r.id ? 'Approving…' : `Approve (${att.secondsLeft}s)`}
                           </button>
                         )
                       ) : (
-                        // No attestation yet
                         <button
-                          onClick={() => {
-                            setAttestingId(r.id)
-                            setMarginInput('')
-                            setRejectingId(null)
-                          }}
+                          onClick={() => { setAttestingId(r.id); setMarginInput(''); setRejectingId(null) }}
                           disabled={processing === r.id}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300 transition-colors disabled:opacity-50">
                           Verify MT5 Free Margin
                         </button>
                       )}
 
-                      {/* Reject button — hidden when insufficient margin is already showing it */}
                       {!isInsufficientMargin && (
                         <button
-                          onClick={() => {
-                            setRejectingId(r.id)
-                            setRejectReason('')
-                            setAttestingId(null)
-                          }}
+                          onClick={() => { setRejectingId(r.id); setRejectReason(''); setAttestingId(null) }}
                           disabled={processing === r.id}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-500 hover:bg-red-200 transition-colors disabled:opacity-50">
                           Reject
@@ -447,9 +393,7 @@ export default function AdminWithdrawalsPage() {
                       )}
 
                       {!att.valid && att.freeMargin !== null && (
-                        <p className="text-[10px] text-[#94a3b8] text-right">
-                          Previous attestation expired
-                        </p>
+                        <p className="text-[10px] text-[#94a3b8] text-right">Previous attestation expired</p>
                       )}
                     </div>
                   )}

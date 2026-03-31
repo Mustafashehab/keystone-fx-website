@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
@@ -23,13 +23,13 @@ interface NotificationBellProps {
 export function NotificationBell({ recipient, clientId }: NotificationBellProps) {
   const supabase = createClient()
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [open, setOpen]     = useState(false)
+  const [open, setOpen]       = useState(false)
   const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  async function loadNotifications() {
+  const loadNotifications = useCallback(async () => {
     let query = supabase
       .from('notifications')
       .select('*')
@@ -44,16 +44,14 @@ export function NotificationBell({ recipient, clientId }: NotificationBellProps)
     const { data } = await query
     setNotifications((data ?? []) as Notification[])
     setLoading(false)
-  }
+  }, [supabase, recipient, clientId])
 
   useEffect(() => {
     loadNotifications()
-    // Poll every 30 seconds for new notifications
     const interval = setInterval(loadNotifications, 30000)
     return () => clearInterval(interval)
-  }, [clientId])
+  }, [loadNotifications])
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -86,21 +84,20 @@ export function NotificationBell({ recipient, clientId }: NotificationBellProps)
   }
 
   const iconForType: Record<string, string> = {
-    ticket_reply:          '💬',
-    withdrawal_approved:   '✅',
-    withdrawal_rejected:   '❌',
-    kyc_approved:          '✅',
-    kyc_rejected:          '❌',
-    kyc_submitted:         '📋',
-    deposit_detected:      '💰',
-    new_ticket:            '🎫',
-    new_withdrawal:        '💸',
-    new_client:            '👤',
+    ticket_reply:        '💬',
+    withdrawal_approved: '✅',
+    withdrawal_rejected: '❌',
+    kyc_approved:        '✅',
+    kyc_rejected:        '❌',
+    kyc_submitted:       '📋',
+    deposit_detected:    '💰',
+    new_ticket:          '🎫',
+    new_withdrawal:      '💸',
+    new_client:          '👤',
   }
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Bell button */}
       <button
         onClick={() => { setOpen(v => !v); if (!open) loadNotifications() }}
         className="relative p-2 rounded-xl text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9] transition-all"
@@ -115,11 +112,8 @@ export function NotificationBell({ recipient, clientId }: NotificationBellProps)
         )}
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-white border border-[#e5e7eb] shadow-xl z-50 overflow-hidden">
-
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#f1f5f9]">
             <h3 className="text-sm font-semibold text-[#0f172a]">
               Notifications {unreadCount > 0 && (
@@ -138,7 +132,6 @@ export function NotificationBell({ recipient, clientId }: NotificationBellProps)
             )}
           </div>
 
-          {/* List */}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
               <div className="p-4 space-y-2">
@@ -185,7 +178,6 @@ export function NotificationBell({ recipient, clientId }: NotificationBellProps)
             )}
           </div>
 
-          {/* Footer */}
           {notifications.length > 0 && (
             <div className="px-4 py-2.5 border-t border-[#f1f5f9] text-center">
               <p className="text-xs text-[#94a3b8]">Showing last 20 notifications</p>

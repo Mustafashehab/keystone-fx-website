@@ -102,8 +102,6 @@ export default function TicketDetailPage() {
       />
 
       <div className="p-6 space-y-5">
-
-        {/* Metadata */}
         <Card>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
@@ -129,17 +127,14 @@ export default function TicketDetailPage() {
           </div>
         </Card>
 
-        {/* Message thread */}
         <Card padding="none">
           <div className="px-5 py-4 border-b border-[var(--kfx-border)]">
             <h2 className="text-sm font-semibold text-[var(--kfx-text)]">Messages</h2>
           </div>
 
           <div className="p-5 space-y-4 min-h-[200px] max-h-[480px] overflow-y-auto">
-            {/* Original description */}
             <MessageBubble
               content={ticket.description}
-              role="client"
               isOwn={true}
               time={ticket.created_at}
             />
@@ -148,7 +143,6 @@ export default function TicketDetailPage() {
               <MessageBubble
                 key={msg.id}
                 content={msg.content}
-                role={msg.sender_role as 'client' | 'admin'}
                 isOwn={msg.sender_role === 'client'}
                 time={msg.created_at}
               />
@@ -169,16 +163,8 @@ export default function TicketDetailPage() {
                 className="kfx-input resize-none w-full"
               />
               <div className="flex items-center justify-between mt-3">
-                <p className="text-xs text-[var(--kfx-text-subtle)]">
-                  Cmd+Enter to send
-                </p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={sending}
-                  disabled={!reply.trim()}
-                  onClick={sendReply}
-                >
+                <p className="text-xs text-[var(--kfx-text-subtle)]">Cmd+Enter to send</p>
+                <Button variant="primary" size="sm" loading={sending} disabled={!reply.trim()} onClick={sendReply}>
                   Send Reply
                 </Button>
               </div>
@@ -186,8 +172,7 @@ export default function TicketDetailPage() {
           ) : (
             <div className="border-t border-[var(--kfx-border)] p-4">
               <p className="text-sm text-[var(--kfx-text-muted)] text-center">
-                This ticket is {ticket.status}. Open a new ticket if you need
-                further assistance.
+                This ticket is {ticket.status}. Open a new ticket if you need further assistance.
               </p>
             </div>
           )}
@@ -199,41 +184,30 @@ export default function TicketDetailPage() {
 
 function MessageBubble({
   content,
-  role,
   isOwn,
   time,
 }: {
   content: string
-  role: 'client' | 'admin'
   isOwn: boolean
   time: string
 }) {
   return (
     <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          'max-w-[80%] flex flex-col gap-1',
-          isOwn ? 'items-end' : 'items-start'
-        )}
-      >
+      <div className={cn('max-w-[80%] flex flex-col gap-1', isOwn ? 'items-end' : 'items-start')}>
         {!isOwn && (
           <span className="text-[10px] font-semibold text-[var(--kfx-gold)] uppercase tracking-wider px-1">
             Keystone FX Support
           </span>
         )}
-        <div
-          className={cn(
-            'px-4 py-2.5 rounded-xl text-sm leading-relaxed',
-            isOwn
-              ? 'bg-[var(--kfx-accent)] text-white rounded-br-sm'
-              : 'bg-[var(--kfx-surface-raised)] border border-[var(--kfx-border)] text-[var(--kfx-text)] rounded-bl-sm'
-          )}
-        >
+        <div className={cn(
+          'px-4 py-2.5 rounded-xl text-sm leading-relaxed',
+          isOwn
+            ? 'bg-[var(--kfx-accent)] text-white rounded-br-sm'
+            : 'bg-[var(--kfx-surface-raised)] border border-[var(--kfx-border)] text-[var(--kfx-text)] rounded-bl-sm'
+        )}>
           {content}
         </div>
-        <span className="text-[10px] text-[var(--kfx-text-subtle)] px-1">
-          {formatDateTime(time)}
-        </span>
+        <span className="text-[10px] text-[var(--kfx-text-subtle)] px-1">{formatDateTime(time)}</span>
       </div>
     </div>
   )

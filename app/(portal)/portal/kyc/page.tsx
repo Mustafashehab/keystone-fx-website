@@ -60,7 +60,6 @@ const INVESTMENT_OBJECTIVES = [
   { label: 'Diversification',   value: 'diversification' },
 ]
 
-// Defined outside component to avoid re-creation on every render
 const COUNTRIES = [
   { label: 'Afghanistan', value: 'AF' },
   { label: 'Albania', value: 'AL' },
@@ -261,6 +260,9 @@ const COUNTRIES = [
 
 const SECTIONS = ['Personal Info', 'Address', 'Financial Profile', 'Declarations']
 
+// Reusable red star component
+const Req = () => <span className="text-red-500 ml-0.5">*</span>
+
 export default function KYCPage() {
   const router   = useRouter()
   const supabase = createClient()
@@ -373,12 +375,12 @@ export default function KYCPage() {
 
     const data = getValues()
 
-    // Only first name, last name, date of birth, and nationality are mandatory
     const missing: string[] = []
     if (!data.firstName)   missing.push('First Name')
     if (!data.lastName)    missing.push('Last Name')
     if (!data.dateOfBirth) missing.push('Date of Birth')
     if (!data.nationality) missing.push('Nationality')
+    if (!data.phone)       missing.push('Phone Number')
 
     if (missing.length > 0) {
       const msg = 'Please complete: ' + missing.join(', ')
@@ -433,7 +435,6 @@ export default function KYCPage() {
 
       if (kycErr) throw new Error(kycErr.message)
 
-      // Notify admin of KYC submission
       await fetch('/api/notifications/kyc-submitted', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -510,16 +511,16 @@ export default function KYCPage() {
           ))}
         </div>
 
-        {/* SECTION 0 — Personal Info: name + DOB + nationality mandatory, rest optional */}
+        {/* SECTION 0 — Personal Info */}
         {activeSection === 0 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">Personal Information</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="First Name"    required disabled={isReadOnly} {...register('firstName')} />
-              <Input label="Last Name"     required disabled={isReadOnly} {...register('lastName')} />
-              <Input label="Date of Birth" type="date" required disabled={isReadOnly} {...register('dateOfBirth')} />
-              <Input label="Phone Number"  type="tel"  disabled={isReadOnly} placeholder="+1 234 567 8900" {...register('phone')} />
-              <Select label="Nationality"          required disabled={isReadOnly} options={COUNTRIES} placeholder="Select nationality" {...register('nationality')} />
+              <Input label={<>First Name <Req /></>}    required disabled={isReadOnly} {...register('firstName')} />
+              <Input label={<>Last Name <Req /></>}     required disabled={isReadOnly} {...register('lastName')} />
+              <Input label={<>Date of Birth <Req /></>} type="date" required disabled={isReadOnly} {...register('dateOfBirth')} />
+              <Input label={<>Phone Number <Req /></>}  type="tel" required disabled={isReadOnly} placeholder="+1 234 567 8900" {...register('phone')} />
+              <Select label={<>Nationality <Req /></>}          required disabled={isReadOnly} options={COUNTRIES} placeholder="Select nationality" {...register('nationality')} />
               <Select label="Country of Residence" disabled={isReadOnly} options={COUNTRIES} placeholder="Select country (optional)" {...register('countryOfResidence')} />
             </div>
             <div className="mt-4 flex justify-end">
@@ -530,7 +531,7 @@ export default function KYCPage() {
           </Card>
         )}
 
-        {/* SECTION 1 — Address: all optional */}
+        {/* SECTION 1 — Address */}
         {activeSection === 1 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
@@ -551,7 +552,7 @@ export default function KYCPage() {
           </Card>
         )}
 
-        {/* SECTION 2 — Financial Profile: all optional */}
+        {/* SECTION 2 — Financial Profile */}
         {activeSection === 2 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
@@ -594,7 +595,7 @@ export default function KYCPage() {
           </Card>
         )}
 
-        {/* SECTION 3 — Declarations: all optional */}
+        {/* SECTION 3 — Declarations */}
         {activeSection === 3 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
