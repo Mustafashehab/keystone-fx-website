@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 const WHATSAPP_LINK = 'https://wa.me/447511648370'
 
@@ -40,6 +41,7 @@ function TxLink({ hash }: { hash: string }) {
 }
 
 function SweepModal({ amount, onClose }: { amount: number; onClose: () => void }) {
+  const { t } = usePortalI18n()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white p-7 shadow-2xl" style={{ border: '1.5px solid rgba(201,168,76,0.4)' }}>
@@ -50,10 +52,10 @@ function SweepModal({ amount, onClose }: { amount: number; onClose: () => void }
             </svg>
           </div>
         </div>
-        <h2 className="text-lg font-bold text-center text-[#0f172a] mb-2">Deposit Confirmed</h2>
-        <p className="text-sm text-center text-[#64748b] mb-1">Your deposit of</p>
+        <h2 className="text-lg font-bold text-center text-[#0f172a] mb-2">{t.deposit.depositConfirmed}</h2>
+        <p className="text-sm text-center text-[#64748b] mb-1">{t.deposit.depositOf}</p>
         <p className="text-3xl font-bold text-center mb-1" style={{ color: '#c9a84c' }}>${amount.toFixed(2)} USDT</p>
-        <p className="text-sm text-center text-[#64748b] mb-6">has been added to your MT5 account</p>
+        <p className="text-sm text-center text-[#64748b] mb-6">{t.deposit.addedToAccount}</p>
         <button onClick={onClose} className="w-full py-3 rounded-xl text-sm font-bold transition-all"
           style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #f5c842 100%)', color: '#0f0a02', boxShadow: '0 4px 16px rgba(245,200,66,0.35)' }}>
           OK
@@ -64,9 +66,10 @@ function SweepModal({ amount, onClose }: { amount: number; onClose: () => void }
 }
 
 function WhatsAppScreen({ page }: { page: 'deposit' | 'withdrawal' }) {
+  const { t } = usePortalI18n()
   return (
     <div>
-      <PortalHeader title={page === 'deposit' ? 'Deposit USDT' : 'Withdraw USDT'} />
+      <PortalHeader title={page === 'deposit' ? t.deposit.title : t.withdrawal.title} />
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-sm w-full bg-[var(--kfx-surface)] border border-[var(--kfx-border)] rounded-2xl p-8 text-center space-y-5">
           <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto">
@@ -74,19 +77,19 @@ function WhatsAppScreen({ page }: { page: 'deposit' | 'withdrawal' }) {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-[var(--kfx-text)] mb-2">
-              Service Temporarily Unavailable
+              {t.deposit.serviceUnavailable}
             </h2>
             <p className="text-sm text-[var(--kfx-text-muted)] leading-relaxed">
               {page === 'deposit'
-                ? 'Deposits are currently unavailable. Please contact our support team on WhatsApp and we will assist you directly.'
-                : 'Withdrawals are currently unavailable. Please contact our support team on WhatsApp and we will assist you directly.'}
+                ? t.deposit.serviceUnavailableDesc
+                : t.withdrawal.serviceUnavailableDesc}
             </p>
           </div>
           <button
             onClick={() => window.open(WHATSAPP_LINK, '_blank')}
             className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
           >
-            Contact Support on WhatsApp
+            {t.deposit.contactWhatsApp}
           </button>
         </div>
       </div>
@@ -98,6 +101,7 @@ export default function DepositPage() {
   const router   = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
+  const { t } = usePortalI18n()
 
   const [wallet,       setWallet]       = useState<WalletData | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -236,7 +240,7 @@ export default function DepositPage() {
   if (loading) {
     return (
       <div>
-        <PortalHeader title="Deposit USDT" />
+        <PortalHeader title={t.deposit.title} />
         <div className="p-6 space-y-4">
           {[1, 2, 3].map((i) => <div key={i} className="h-32 bg-[var(--kfx-surface-raised)] rounded animate-pulse" />)}
         </div>
@@ -247,23 +251,23 @@ export default function DepositPage() {
   return (
     <div>
       {sweepModal && <SweepModal amount={sweptAmount} onClose={() => setSweepModal(false)} />}
-      <PortalHeader title="Deposit USDT" subtitle="Send USDT (TRC-20) to your unique wallet address below." />
+      <PortalHeader title={t.deposit.title} subtitle={t.deposit.subtitle} />
       <div className="p-6 space-y-5 max-w-2xl">
 
         {!kycApproved && (
-          <Alert variant="warning" title="KYC Required">
-            Your KYC must be approved before you can deposit.
+          <Alert variant="warning" title={t.deposit.kycRequired}>
+            {t.deposit.kycRequiredDesc}
           </Alert>
         )}
 
         {kycApproved && !wallet && (
           <Card>
-            <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-2">Generate Your Deposit Wallet</h2>
+            <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-2">{t.deposit.generateWallet}</h2>
             <p className="text-sm text-[var(--kfx-text-muted)] mb-4">
-              You need a unique TRC-20 wallet address to receive USDT deposits.
+              {t.deposit.generateWalletDesc}
             </p>
             <Button variant="primary" loading={creating} onClick={createWallet}>
-              Generate Wallet
+              {t.deposit.generateBtn}
             </Button>
           </Card>
         )}
@@ -271,11 +275,11 @@ export default function DepositPage() {
         {kycApproved && wallet && (
           <>
             <Card>
-              <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">Your Deposit Address</h2>
+              <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">{t.deposit.depositAddress}</h2>
               <div className="flex items-center gap-2 p-3 bg-[var(--kfx-surface-raised)] rounded-lg mb-4">
                 <p className="text-xs font-mono text-[var(--kfx-text)] break-all flex-1">{wallet.tron_address}</p>
                 <button onClick={copyAddress} className="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-[var(--kfx-accent)] text-black font-semibold">
-                  {copied ? 'Copied!' : 'Copy'}
+                  {copied ? t.deposit.copied : t.deposit.copy}
                 </button>
               </div>
               <div className="flex justify-center">
@@ -293,37 +297,37 @@ export default function DepositPage() {
             </Card>
 
             <Card>
-              <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">Wallet Balance</h2>
+              <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">{t.deposit.walletBalance}</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[var(--kfx-surface-raised)] rounded-lg p-4">
-                  <p className="text-xs text-[var(--kfx-text-muted)] mb-1">Current Balance</p>
+                  <p className="text-xs text-[var(--kfx-text-muted)] mb-1">{t.deposit.currentBalance}</p>
                   <p className="text-2xl font-bold text-[var(--kfx-text)] tabular-nums">${wallet.usdt_balance.toFixed(2)}</p>
                   <p className="text-xs text-[var(--kfx-text-subtle)] mt-0.5">USDT</p>
                 </div>
                 <div className="bg-[var(--kfx-surface-raised)] rounded-lg p-4">
-                  <p className="text-xs text-[var(--kfx-text-muted)] mb-1">Total Deposited</p>
+                  <p className="text-xs text-[var(--kfx-text-muted)] mb-1">{t.deposit.totalDeposited}</p>
                   <p className="text-2xl font-bold text-[var(--kfx-text)] tabular-nums">${wallet.total_deposited.toFixed(2)}</p>
                   <p className="text-xs text-[var(--kfx-text-subtle)] mt-0.5">USDT</p>
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-xs text-[var(--kfx-text-subtle)]">
-                  {wallet.last_checked_at ? 'Last checked: ' + formatDate(wallet.last_checked_at) : 'Never checked'}
+                  {wallet.last_checked_at ? t.deposit.lastChecked + formatDate(wallet.last_checked_at) : t.deposit.neverChecked}
                 </p>
                 <Button variant="secondary" size="sm" loading={checking} onClick={checkDeposits}>
-                  Check for Deposits
+                  {t.deposit.checkDeposits}
                 </Button>
               </div>
             </Card>
 
             <Card padding="none">
               <div className="px-5 py-4 border-b border-[var(--kfx-border)]">
-                <h2 className="text-sm font-semibold text-[var(--kfx-text)]">Transaction History</h2>
+                <h2 className="text-sm font-semibold text-[var(--kfx-text)]">{t.deposit.transactionHistory}</h2>
               </div>
               {transactions.length === 0 ? (
                 <div className="py-12 text-center">
-                  <p className="text-sm text-[var(--kfx-text-muted)]">No deposits yet.</p>
-                  <p className="text-xs text-[var(--kfx-text-subtle)] mt-1">Send USDT to your address above and click Check for Deposits.</p>
+                  <p className="text-sm text-[var(--kfx-text-muted)]">{t.deposit.noDeposits}</p>
+                  <p className="text-xs text-[var(--kfx-text-subtle)] mt-1">{t.deposit.noDepositsDesc}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-[var(--kfx-border-subtle)]">
@@ -335,7 +339,7 @@ export default function DepositPage() {
                       </div>
                       <div className="text-right shrink-0">
                         <span className={'text-xs font-semibold px-2 py-0.5 rounded ' + (tx.status === 'swept' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600')}>
-                          {tx.status === 'swept' ? 'Added to MT5' : 'Pending'}
+                          {tx.status === 'swept' ? t.deposit.addedToMT5 : t.deposit.pending}
                         </span>
                         <p className="text-xs text-[var(--kfx-text-subtle)] mt-0.5">{formatDate(tx.created_at)}</p>
                       </div>

@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/Alert'
 import { useToast } from '@/components/ui/Toast'
 import { formatDateTime } from '@/lib/utils'
 import type { Ticket, ClientProfile } from '@/types'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 const PRIORITY_OPTIONS = [
   { label: 'Low',    value: 'low' },
@@ -36,11 +37,22 @@ export default function SupportPage() {
   const router   = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
+  const { t } = usePortalI18n()
 
   const [profile,  setProfile]  = useState<ClientProfile | null>(null)
   const [tickets,  setTickets]  = useState<Ticket[]>([])
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)
+
+  const translatedPriorityOptions = PRIORITY_OPTIONS.map((o) => ({
+    value: o.value,
+    label: t.support.priority_options[o.value as keyof typeof t.support.priority_options],
+  }))
+
+  const translatedCategoryOptions = CATEGORY_OPTIONS.map((o) => ({
+    value: o.value,
+    label: t.support.category_options[o.value as keyof typeof t.support.category_options],
+  }))
 
   const {
     register,
@@ -111,8 +123,8 @@ export default function SupportPage() {
   return (
     <div>
       <PortalHeader
-        title="Support"
-        subtitle="Get help with your account or submit a new request."
+        title={t.support.title}
+        subtitle={t.support.subtitle}
         action={
           <Button
             variant="primary"
@@ -124,7 +136,7 @@ export default function SupportPage() {
               </svg>
             }
           >
-            New Ticket
+            {t.support.newTicket}
           </Button>
         }
       />
@@ -133,9 +145,9 @@ export default function SupportPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Total Tickets',     value: tickets.length },
-            { label: 'Open / In Progress', value: openCount },
-            { label: 'Resolved',          value: resolvedCount },
+            { label: t.support.totalTickets,   value: tickets.length },
+            { label: t.support.openInProgress, value: openCount },
+            { label: t.support.resolved,       value: resolvedCount },
           ].map((s) => (
             <div key={s.label} className="kfx-card p-4 text-center">
               <p className="text-2xl font-semibold text-[var(--kfx-text)] tabular-nums">
@@ -150,7 +162,7 @@ export default function SupportPage() {
         <Card padding="none">
           <div className="px-5 py-4 border-b border-[var(--kfx-border)]">
             <h2 className="text-sm font-semibold text-[var(--kfx-text)]">
-              Your Tickets
+              {t.support.yourTickets}
             </h2>
           </div>
 
@@ -165,15 +177,15 @@ export default function SupportPage() {
             </div>
           ) : tickets.length === 0 ? (
             <EmptyState
-              title="No support tickets"
-              description="You haven't submitted any support requests yet."
+              title={t.support.noTickets}
+              description={t.support.noTicketsDesc}
               action={
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => setShowForm(true)}
                 >
-                  Create your first ticket
+                  {t.support.createFirst}
                 </Button>
               }
               icon={
@@ -201,47 +213,47 @@ export default function SupportPage() {
       <Modal
         open={showForm}
         onClose={() => { setShowForm(false); reset() }}
-        title="New Support Ticket"
-        description="Describe your issue and we'll get back to you as soon as possible."
+        title={t.support.newTicketTitle}
+        description={t.support.newTicketDesc}
         size="lg"
         footer={
           <>
             <Button variant="secondary" onClick={() => { setShowForm(false); reset() }}>
-              Cancel
+              {t.support.cancel}
             </Button>
             <Button
               variant="primary"
               loading={isSubmitting}
               onClick={handleSubmit(onSubmit)}
             >
-              Submit Ticket
+              {t.support.submitTicket}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
           <Input
-            label="Subject" required
-            placeholder="Brief description of your issue"
+            label={t.support.subject} required
+            placeholder={t.support.subjectPlaceholder}
             error={errors.subject?.message}
             {...register('subject')}
           />
           <Textarea
-            label="Description" required rows={5}
-            placeholder="Please provide as much detail as possible…"
+            label={t.support.description} required rows={5}
+            placeholder={t.support.descriptionPlaceholder}
             error={errors.description?.message}
             {...register('description')}
           />
           <div className="grid grid-cols-2 gap-4">
             <Select
-              label="Priority" required
-              options={PRIORITY_OPTIONS}
+              label={t.support.priority} required
+              options={translatedPriorityOptions}
               error={errors.priority?.message}
               {...register('priority')}
             />
             <Select
-              label="Category"
-              options={CATEGORY_OPTIONS}
+              label={t.support.category}
+              options={translatedCategoryOptions}
               placeholder="Select category"
               error={errors.category?.message}
               {...register('category')}
@@ -260,6 +272,7 @@ function TicketRow({
   ticket: Ticket
   onClick: () => void
 }) {
+  const { t } = usePortalI18n()
   return (
     <button
       onClick={onClick}
@@ -277,7 +290,7 @@ function TicketRow({
           )}
         </div>
         <p className="text-xs text-[var(--kfx-text-subtle)]">
-          Opened {formatDateTime(ticket.created_at)}
+          {t.support.opened} {formatDateTime(ticket.created_at)}
         </p>
       </div>
       <div className="flex items-center gap-3 shrink-0">

@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate, formatFileSize } from '@/lib/utils'
 import type { Document, DocumentType, ClientProfile } from '@/types'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 const BUCKET = 'client-documents'
 
@@ -46,11 +47,18 @@ export default function DocumentsPage() {
   const router   = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
+  const { t } = usePortalI18n()
 
   const [profile,   setProfile]   = useState<ClientProfile | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const [loading,   setLoading]   = useState(true)
+
+  const docLabels: Record<string, { label: string; description: string }> = {
+    passport:         { label: t.documents.passport,       description: t.documents.passportDesc },
+    proof_of_address: { label: t.documents.proofOfAddress, description: t.documents.proofOfAddressDesc },
+    bank_statement:   { label: t.documents.bankStatement,  description: t.documents.bankStatementDesc },
+  }
 
   useEffect(() => {
     async function load() {
@@ -149,8 +157,8 @@ export default function DocumentsPage() {
     return (
       <div>
         <PortalHeader
-          title="Documents"
-          subtitle="Upload and manage your verification documents."
+          title={t.nav.documents}
+          subtitle={t.documents.subtitle}
         />
         <div className="p-6 space-y-4">
           {[1, 2, 3].map((i) => (
@@ -176,33 +184,34 @@ export default function DocumentsPage() {
   return (
     <div>
       <PortalHeader
-        title="Document Verification"
-        subtitle="Upload clear, legible copies of the required documents below."
+        title={t.documents.title}
+        subtitle={t.documents.subtitle}
       />
 
       <div className="p-6 space-y-5">
         <Alert variant="info">
-          All documents must be valid, unedited, and clearly readable. Files
-          must be JPG, PNG, or PDF and under 10 MB each.
+          {t.documents.infoAlert}
         </Alert>
 
         {REQUIRED_DOCUMENTS.map((req) => {
           const uploaded = docsByType[req.type] ?? []
           const latest   = uploaded[0]
+          const tLabel   = docLabels[req.type]?.label ?? req.label
+          const tDesc    = docLabels[req.type]?.description ?? req.description
           return (
             <Card key={req.type}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="text-sm font-semibold text-[var(--kfx-text)]">
-                      {req.label}
+                      {tLabel}
                     </h3>
                     {latest && (
                       <StatusBadge type="document" status={latest.status} />
                     )}
                   </div>
                   <p className="text-xs text-[var(--kfx-text-muted)]">
-                    {req.description}
+                    {tDesc}
                   </p>
                 </div>
                 <UploadButton
@@ -228,8 +237,7 @@ export default function DocumentsPage() {
 
               {latest?.status === 'rejected' && latest.rejection_reason && (
                 <Alert variant="error" className="mt-3">
-                  <strong>Rejected:</strong> {latest.rejection_reason}. Please
-                  upload a new document.
+                  <strong>{t.documents.rejected}:</strong> {latest.rejection_reason}. {t.documents.rejectedDesc}
                 </Alert>
               )}
             </Card>
@@ -262,7 +270,7 @@ export default function DocumentsPage() {
               variant="primary"
               onClick={() => router.push('/portal/account-application')}
             >
-              Continue to Account Application →
+              {t.documents.continueToApplication}
             </Button>
           </div>
         )}
@@ -284,6 +292,7 @@ function UploadButton({
   onFile: (file: File) => void
   disabled?: boolean
 }) {
+  const { t } = usePortalI18n()
   const inputRef = useRef<HTMLInputElement>(null)
   return (
     <>
@@ -312,7 +321,7 @@ function UploadButton({
           ) : undefined
         }
       >
-        {disabled ? 'Verified' : 'Upload'}
+        {disabled ? t.documents.verified : t.documents.upload}
       </Button>
     </>
   )

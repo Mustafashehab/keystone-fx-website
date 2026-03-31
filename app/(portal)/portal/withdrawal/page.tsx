@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 const WHATSAPP_LINK = 'https://wa.me/447511648370'
 
@@ -34,6 +35,7 @@ function isValidTRC20(address: string): boolean {
 }
 
 function WhatsAppBlock() {
+  const { t } = usePortalI18n()
   return (
     <div className="p-6 flex items-center justify-center min-h-[60vh]">
       <div className="max-w-sm w-full bg-[var(--kfx-surface)] border border-[var(--kfx-border)] rounded-2xl p-8 text-center space-y-5">
@@ -42,17 +44,17 @@ function WhatsAppBlock() {
         </div>
         <div>
           <h2 className="text-lg font-semibold text-[var(--kfx-text)] mb-2">
-            Service Temporarily Unavailable
+            {t.withdrawal.serviceUnavailable}
           </h2>
           <p className="text-sm text-[var(--kfx-text-muted)] leading-relaxed">
-            Withdrawals are currently unavailable. Please contact our support team on WhatsApp and we will assist you directly.
+            {t.withdrawal.serviceUnavailableDesc}
           </p>
         </div>
         <button
           onClick={() => window.open(WHATSAPP_LINK, '_blank')}
           className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
         >
-          Contact Support on WhatsApp
+          {t.withdrawal.contactWhatsApp}
         </button>
       </div>
     </div>
@@ -63,6 +65,7 @@ export default function WithdrawalPage() {
   const router   = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
+  const { t } = usePortalI18n()
 
   const [profileId,        setProfileId]        = useState<string | null>(null)
   const [profileName,      setProfileName]      = useState('')
@@ -219,7 +222,7 @@ export default function WithdrawalPage() {
 
   if (!financialEnabled) return (
     <div>
-      <PortalHeader title="Withdraw USDT" />
+      <PortalHeader title={t.withdrawal.title} />
       <WhatsAppBlock />
     </div>
   )
@@ -227,7 +230,7 @@ export default function WithdrawalPage() {
   if (loading) {
     return (
       <div>
-        <PortalHeader title="Withdraw USDT" />
+        <PortalHeader title={t.withdrawal.title} />
         <div className="p-6 space-y-4">
           {[1, 2].map((i) => <div key={i} className="h-32 bg-[var(--kfx-surface-raised)] rounded animate-pulse" />)}
         </div>
@@ -238,66 +241,66 @@ export default function WithdrawalPage() {
   return (
     <div>
       <PortalHeader
-        title="Withdraw USDT"
-        subtitle="Submit a withdrawal request to receive USDT to your TRC-20 wallet."
+        title={t.withdrawal.title}
+        subtitle={t.withdrawal.subtitle}
       />
       <div className="p-6 space-y-5 max-w-2xl">
 
         {!kycApproved && (
-          <Alert variant="warning" title="KYC Required">
-            Your KYC must be approved before you can submit a withdrawal request.
+          <Alert variant="warning" title={t.withdrawal.kycRequired}>
+            {t.withdrawal.kycRequiredDesc}
           </Alert>
         )}
 
         {kycApproved && !registeredWallet && (
-          <Alert variant="warning" title="No Deposit Wallet Found">
-            You must make a deposit first before submitting a withdrawal request.
+          <Alert variant="warning" title={t.withdrawal.noWallet}>
+            {t.withdrawal.noWalletDesc}
           </Alert>
         )}
 
         {kycApproved && hasPendingRequest && (
-          <Alert variant="info" title="Pending Request Active">
-            You have a pending withdrawal request under review. You cannot submit another until it is resolved.
+          <Alert variant="info" title={t.withdrawal.pendingRequest}>
+            {t.withdrawal.pendingRequestDesc}
           </Alert>
         )}
 
         {kycApproved && registeredWallet && !hasPendingRequest && (
           <Card>
-            <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">New Withdrawal Request</h2>
+            <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">{t.withdrawal.newRequest}</h2>
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
               <p className="text-sm font-bold text-red-600">
-                ⚠️ For compliance, withdrawals can only be sent to your registered deposit wallet address.
+                {t.withdrawal.complianceWarning}
               </p>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[var(--kfx-text-muted)] uppercase tracking-wider mb-1.5">MT5 Account Number</label>
+                <label className="block text-xs font-medium text-[var(--kfx-text-muted)] uppercase tracking-wider mb-1.5">{t.withdrawal.mt5Account}</label>
                 <input type="text" value={mt5Account} onChange={(e) => setMt5Account(e.target.value)}
-                  placeholder="e.g. 12345678"
+                  placeholder={t.withdrawal.mt5Placeholder}
                   className="w-full h-10 px-3 rounded-lg border border-[var(--kfx-border)] text-sm text-[var(--kfx-text)] bg-white outline-none focus:border-[var(--kfx-accent)] transition-colors" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--kfx-text-muted)] uppercase tracking-wider mb-1.5">Amount (USDT) — Minimum $10</label>
+                <label className="block text-xs font-medium text-[var(--kfx-text-muted)] uppercase tracking-wider mb-1.5">{t.withdrawal.amount}</label>
                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                  placeholder="e.g. 100" min="10" step="any"
+                  placeholder={t.withdrawal.amountPlaceholder} min="10" step="any"
                   className="w-full h-10 px-3 rounded-lg border border-[var(--kfx-border)] text-sm text-[var(--kfx-text)] bg-white outline-none focus:border-[var(--kfx-accent)] transition-colors" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--kfx-text-muted)] uppercase tracking-wider mb-1.5">Withdrawal Destination (TRC-20)</label>
+                <label className="block text-xs font-medium text-[var(--kfx-text-muted)] uppercase tracking-wider mb-1.5">{t.withdrawal.destination}</label>
                 <input type="text" value={walletAddr} onChange={(e) => validateAddress(e.target.value)}
-                  placeholder="T..."
+                  placeholder={t.withdrawal.destinationPlaceholder}
                   className={`w-full h-10 px-3 rounded-lg border text-sm text-[var(--kfx-text)] bg-white outline-none transition-colors font-mono ${addrError ? 'border-red-400' : 'border-[var(--kfx-border)] focus:border-[var(--kfx-accent)]'}`} />
                 {addrError && <p className="text-xs text-red-500 mt-1">{addrError}</p>}
                 {registeredWallet && (
                   <p className="text-xs text-[var(--kfx-text-muted)] mt-1">
-                    Your registered wallet: <span className="font-mono">{registeredWallet}</span>
+                    {t.withdrawal.registeredWallet}<span className="font-mono">{registeredWallet}</span>
                   </p>
                 )}
               </div>
               <Button variant="primary" loading={submitting}
                 disabled={!amount || !walletAddr || !mt5Account || !!addrError || submitting}
                 onClick={submitRequest}>
-                Submit Withdrawal Request
+                {t.withdrawal.submitRequest}
               </Button>
             </div>
           </Card>
@@ -305,11 +308,11 @@ export default function WithdrawalPage() {
 
         <Card padding="none">
           <div className="px-5 py-4 border-b border-[var(--kfx-border)]">
-            <h2 className="text-sm font-semibold text-[var(--kfx-text)]">Withdrawal History</h2>
+            <h2 className="text-sm font-semibold text-[var(--kfx-text)]">{t.withdrawal.history}</h2>
           </div>
           {requests.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-[var(--kfx-text-muted)]">No withdrawal requests yet.</p>
+              <p className="text-sm text-[var(--kfx-text-muted)]">{t.withdrawal.noHistory}</p>
             </div>
           ) : (
             <div className="divide-y divide-[var(--kfx-border-subtle)]">
