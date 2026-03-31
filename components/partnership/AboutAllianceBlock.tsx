@@ -1,4 +1,5 @@
 import Link from "next/link";
+import InfrastructureFlow from "@/components/visuals/InfrastructureFlow";
 
 type Props = {
   promarketsUrl?: string;
@@ -15,6 +16,8 @@ export default function AboutAllianceBlock({
 
       <div className="relative mx-auto max-w-6xl px-6 lg:px-8">
         <div className="grid gap-8 rounded-[32px] border border-white/10 bg-neutral-950 p-8 shadow-2xl shadow-black/30 lg:grid-cols-[0.9fr_1.1fr] lg:p-10">
+
+          {/* Left — text content */}
           <div className="flex flex-col justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-amber-400/80">
@@ -49,46 +52,9 @@ export default function AboutAllianceBlock({
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-black/40 p-5">
-                <div className="text-xs uppercase tracking-[0.28em] text-white/45">
-                  Keystone FX
-                </div>
-                <div className="mt-3 text-lg font-semibold text-white">
-                  Execution & Technology Layer
-                </div>
-                <p className="mt-3 text-sm leading-7 text-white/65">
-                  Client-facing operational framework, execution presentation,
-                  and infrastructure-led service environment.
-                </p>
-              </div>
+          {/* Right — animated infrastructure visual */}
+          <InfrastructureFlow />
 
-              <div className="rounded-2xl border border-amber-400/15 bg-amber-400/5 p-5">
-                <div className="text-xs uppercase tracking-[0.28em] text-amber-300/70">
-                  ProMarkets Ltd
-                </div>
-                <div className="mt-3 text-lg font-semibold text-white">
-                  Strategic Infrastructure Support
-                </div>
-                <p className="mt-3 text-sm leading-7 text-white/65">
-                  Aligned support layer contributing to a more robust and
-                  scalable execution environment.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.025] p-5">
-              <div className="text-sm font-semibold text-white">
-                Operational Continuity
-              </div>
-              <p className="mt-3 text-sm leading-7 text-white/65">
-                This infrastructure alignment reflects a commitment to service
-                stability, execution depth, and long-term operational resilience
-                — ensuring clients operate within a well-supported environment.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </section>
