@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { AdminHeader } from '@/components/layout/AdminHeader'
-import type { WithdrawalRequestWithClient } from '@/types'
 
 export default async function AdminDashboardPage() {
   const supabaseAuth = await createServerSupabaseClient()
@@ -46,7 +45,6 @@ export default async function AdminDashboardPage() {
       <AdminHeader title="Dashboard" subtitle="Overview of platform activity" />
       <div className="p-6 space-y-6">
 
-        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (
             <Link key={s.label} href={s.href}>
@@ -62,7 +60,6 @@ export default async function AdminDashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Recent Clients */}
           <div className="rounded-xl border border-[#e5e7eb] bg-white">
             <SectionHeader title="Recent Clients" href="/admin/clients" />
             <div className="divide-y divide-[#f1f5f9]">
@@ -84,7 +81,6 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* KYC Queue */}
           <div className="rounded-xl border border-[#e5e7eb] bg-white">
             <SectionHeader title="KYC Queue" href="/admin/kyc" urgent={(pendingKYC ?? 0) > 0} />
             <div className="divide-y divide-[#f1f5f9]">
@@ -107,26 +103,24 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Pending Withdrawals */}
           <div className="rounded-xl border border-[#e5e7eb] bg-white">
             <SectionHeader title="Pending Withdrawals" href="/admin/withdrawals" urgent={(pendingWithdrawals ?? 0) > 0} />
             <div className="divide-y divide-[#f1f5f9]">
               {(recentWithdrawals ?? []).length === 0 ? (
                 <EmptyRow message="No pending withdrawals" />
               ) : (
-                (recentWithdrawals ?? []).map((w: WithdrawalRequestWithClient) => (
+                (recentWithdrawals ?? []).map((w) => (
                   <Link key={w.id} href="/admin/withdrawals"
                     className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8fafc] transition-colors">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-[#0f172a]">
-                        {w.client_profiles?.first_name} {w.client_profiles?.last_name}
+                        {(w.client_profiles as { first_name: string; last_name: string } | null)?.first_name}{' '}
+                        {(w.client_profiles as { first_name: string; last_name: string } | null)?.last_name}
                       </p>
                       <p className="text-xs text-[#94a3b8]">{formatTimeAgo(w.created_at)}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-orange-500">
-                        ${Number(w.amount).toFixed(2)}
-                      </p>
+                      <p className="text-sm font-semibold text-orange-500">${Number(w.amount).toFixed(2)}</p>
                       <p className="text-[10px] text-[#94a3b8]">USDT</p>
                     </div>
                   </Link>
@@ -136,7 +130,6 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Open Tickets row */}
         <div className="rounded-xl border border-[#e5e7eb] bg-white">
           <SectionHeader title="Open Tickets" href="/admin/tickets" urgent={(openTickets ?? 0) > 0} />
           <div className="divide-y divide-[#f1f5f9]">
@@ -157,15 +150,14 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="rounded-xl border border-[#e5e7eb] bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#94a3b8] mb-4">Quick Actions</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: 'Review KYC',    href: '/admin/kyc',         desc: 'Process pending submissions' },
-              { label: 'Withdrawals',   href: '/admin/withdrawals', desc: 'Review pending requests' },
-              { label: 'View Documents',href: '/admin/documents',   desc: 'Verify uploaded files' },
-              { label: 'Answer Tickets',href: '/admin/tickets',     desc: 'Respond to client requests' },
+              { label: 'Review KYC',     href: '/admin/kyc',         desc: 'Process pending submissions' },
+              { label: 'Withdrawals',    href: '/admin/withdrawals', desc: 'Review pending requests' },
+              { label: 'View Documents', href: '/admin/documents',   desc: 'Verify uploaded files' },
+              { label: 'Answer Tickets', href: '/admin/tickets',     desc: 'Respond to client requests' },
             ].map((action) => (
               <Link key={action.label} href={action.href}
                 className="p-3 rounded-xl border border-[#e5e7eb] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all">
@@ -217,8 +209,11 @@ function KYCPill({ status }: { status: string }) {
     rejected:     'bg-red-100 text-red-600',
   }
   const labels: Record<string, string> = {
-    not_started: 'Not Started', pending: 'Pending',
-    under_review: 'In Review',  approved: 'Approved', rejected: 'Rejected',
+    not_started:  'Not Started',
+    pending:      'Pending',
+    under_review: 'In Review',
+    approved:     'Approved',
+    rejected:     'Rejected',
   }
   return (
     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${map[status] ?? map.not_started}`}>
