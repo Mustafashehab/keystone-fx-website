@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { PortalHeader } from '@/components/layout/PortalHeader'
 import { Card } from '@/components/ui/Card'
@@ -94,7 +95,7 @@ function WhatsAppScreen({ page }: { page: 'deposit' | 'withdrawal' }) {
 }
 
 export default function DepositPage() {
-  const router = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
 
@@ -191,7 +192,7 @@ export default function DepositPage() {
   async function createWallet() {
     setCreating(true)
     try {
-      const res = await fetch('/api/tron/create-wallet', { method: 'POST' })
+      const res  = await fetch('/api/tron/create-wallet', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       success('Wallet created', 'Your unique deposit wallet is ready.')
@@ -206,7 +207,7 @@ export default function DepositPage() {
   async function checkDeposits() {
     setChecking(true)
     try {
-      const res = await fetch('/api/tron/check-deposits', { method: 'POST' })
+      const res  = await fetch('/api/tron/check-deposits', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       if (data.newDeposits > 0) {
@@ -279,10 +280,13 @@ export default function DepositPage() {
               </div>
               <div className="flex justify-center">
                 <div className="w-32 h-32 rounded-xl overflow-hidden border border-[var(--kfx-border)]">
-                  <img
+                  <Image
                     src={'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + wallet.tron_address}
                     alt="Wallet QR Code"
+                    width={128}
+                    height={128}
                     className="w-full h-full"
+                    unoptimized
                   />
                 </div>
               </div>

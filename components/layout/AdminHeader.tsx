@@ -6,10 +6,9 @@ interface AdminHeaderProps {
   title: string
   subtitle?: string
   action?: React.ReactNode
-  className?: string
 }
 
-export function AdminHeader({ title, subtitle, action, className }: AdminHeaderProps) {
+export function AdminHeader({ title, subtitle, action }: AdminHeaderProps) {
   return (
     <header className="flex items-start justify-between px-6 py-5 border-b border-[#eef2f6] bg-white">
       <div>

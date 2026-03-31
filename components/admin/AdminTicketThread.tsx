@@ -19,7 +19,7 @@ const TICKET_STYLES: Record<string, string> = {
   closed:      'bg-gray-100 text-gray-500',
 }
 
-export function AdminTicketThread({ ticket, initialMessages, adminId }: {
+export function AdminTicketThread({ ticket, initialMessages, adminId: _adminId }: {
   ticket: Ticket
   initialMessages: TicketMessage[]
   adminId: string
@@ -42,14 +42,12 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
     if (!reply.trim()) return
     setSending(true)
     try {
-      // Use API route with service role — direct supabase client is blocked by RLS
       const res = await fetch('/api/admin/tickets/reply', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           ticketId:       ticket.id,
           content:        reply.trim(),
-          // Auto-move to in_progress on first admin reply
           updateStatusTo: currentStatus === 'open' ? 'in_progress' : undefined,
         }),
       })
@@ -74,7 +72,6 @@ export function AdminTicketThread({ ticket, initialMessages, adminId }: {
   async function updateStatus(status: TicketStatus, notify = true) {
     setUpdatingStatus(true)
     try {
-      // Use API route with service role
       const res = await fetch('/api/admin/tickets/reply', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },

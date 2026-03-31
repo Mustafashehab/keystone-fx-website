@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { AdminHeader } from '@/components/layout/AdminHeader'
+import type { WithdrawalRequestWithClient } from '@/types'
 
 export default async function AdminDashboardPage() {
   const supabaseAuth = await createServerSupabaseClient()
@@ -15,7 +16,7 @@ export default async function AdminDashboardPage() {
     { count: totalClients },
     { count: pendingKYC },
     { count: openTickets },
-    { count: newLeads },
+    ,
     { count: pendingWithdrawals },
     { data: recentClients },
     { data: recentKYC },
@@ -113,7 +114,7 @@ export default async function AdminDashboardPage() {
               {(recentWithdrawals ?? []).length === 0 ? (
                 <EmptyRow message="No pending withdrawals" />
               ) : (
-                (recentWithdrawals ?? []).map((w: any) => (
+                (recentWithdrawals ?? []).map((w: WithdrawalRequestWithClient) => (
                   <Link key={w.id} href="/admin/withdrawals"
                     className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8fafc] transition-colors">
                     <div className="min-w-0">
@@ -161,10 +162,10 @@ export default async function AdminDashboardPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-[#94a3b8] mb-4">Quick Actions</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: 'Review KYC',        href: '/admin/kyc',         desc: 'Process pending submissions' },
-              { label: 'Withdrawals',        href: '/admin/withdrawals', desc: 'Review pending requests' },
-              { label: 'View Documents',     href: '/admin/documents',   desc: 'Verify uploaded files' },
-              { label: 'Answer Tickets',     href: '/admin/tickets',     desc: 'Respond to client requests' },
+              { label: 'Review KYC',    href: '/admin/kyc',         desc: 'Process pending submissions' },
+              { label: 'Withdrawals',   href: '/admin/withdrawals', desc: 'Review pending requests' },
+              { label: 'View Documents',href: '/admin/documents',   desc: 'Verify uploaded files' },
+              { label: 'Answer Tickets',href: '/admin/tickets',     desc: 'Respond to client requests' },
             ].map((action) => (
               <Link key={action.label} href={action.href}
                 className="p-3 rounded-xl border border-[#e5e7eb] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all">

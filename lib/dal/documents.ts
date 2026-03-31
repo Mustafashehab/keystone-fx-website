@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import type { Document, DocumentStatus, DocumentType, ApiResponse } from '@/types'
+import type { Document, DocumentStatus, ApiResponse } from '@/types'
 
 const BUCKET = 'client-documents'
 

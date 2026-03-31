@@ -19,9 +19,13 @@ const eslintConfig = defineConfig([
       "@next/next/no-html-link-for-pages":     "off",
       "react-hooks/set-state-in-effect":       "off",
       "@typescript-eslint/no-explicit-any":    "warn",
-      "@typescript-eslint/no-unused-vars":     "warn",
-      "react-hooks/exhaustive-deps":           "warn",
       "@next/next/no-img-element":             "warn",
+      "react-hooks/exhaustive-deps":           "warn",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern":       "^_",
+        "varsIgnorePattern":       "^_",
+        "caughtErrorsIgnorePattern": "^_",
+      }],
     },
   },
 ]);

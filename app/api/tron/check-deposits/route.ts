@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { checkWalletDeposits } from '@/lib/tron/monitor'
 import { createNotification } from '@/lib/notifications'
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -32,11 +32,9 @@ export async function POST(req: NextRequest) {
 
     if (error) return NextResponse.json({ error }, { status: 500 })
 
-    // Notify client and admin if new deposits detected
     if (newDeposits > 0) {
       const clientName = `${profile.first_name} ${profile.last_name}`
 
-      // Notify client
       await createNotification({
         recipient: 'client',
         clientId:  profile.id,
@@ -46,7 +44,6 @@ export async function POST(req: NextRequest) {
         link:      '/portal/deposit',
       })
 
-      // Notify admin
       await createNotification({
         recipient: 'admin',
         clientId:  profile.id,
