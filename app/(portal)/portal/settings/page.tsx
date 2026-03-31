@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { ConfirmDialog } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 const NOTIFICATION_PREFS = [
   {
@@ -54,6 +55,7 @@ export default function SettingsPage() {
   const router   = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
+  const { t } = usePortalI18n()
 
   const [email,         setEmail]         = useState('')
   const [newPwd,        setNewPwd]        = useState('')
@@ -65,6 +67,14 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState<NotificationState>(
     DEFAULT_NOTIFICATIONS
   )
+
+  const notifLabels: Record<NotificationKeys, { label: string; desc: string }> = {
+    kycUpdates:      { label: t.settings.notifications.kycUpdates,      desc: t.settings.notifications.kycUpdatesDesc },
+    documentUpdates: { label: t.settings.notifications.documentUpdates, desc: t.settings.notifications.documentUpdatesDesc },
+    ticketReplies:   { label: t.settings.notifications.ticketReplies,   desc: t.settings.notifications.ticketRepliesDesc },
+    accountUpdates:  { label: t.settings.notifications.accountUpdates,  desc: t.settings.notifications.accountUpdatesDesc },
+    marketing:       { label: t.settings.notifications.marketing,       desc: t.settings.notifications.marketingDesc },
+  }
 
   useEffect(() => {
     async function load() {
@@ -118,8 +128,8 @@ export default function SettingsPage() {
   return (
     <div>
       <PortalHeader
-        title="Settings"
-        subtitle="Manage your account preferences and security."
+        title={t.settings.title}
+        subtitle={t.settings.subtitle}
       />
 
       <div className="p-6 space-y-6 max-w-2xl">
@@ -127,15 +137,15 @@ export default function SettingsPage() {
         {/* Email */}
         <Card>
           <h2 className="text-sm font-semibold text-[var(--kfx-text)] mb-5">
-            Email Address
+            {t.settings.emailSection}
           </h2>
           <div className="space-y-4">
             <Input
-              label="Email address"
+              label={t.settings.emailLabel}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              hint="Changing your email will require re-verification."
+              hint={t.settings.emailHint}
             />
             <div className="flex justify-end">
               <Button
@@ -144,7 +154,7 @@ export default function SettingsPage() {
                 loading={savingEmail}
                 onClick={handleUpdateEmail}
               >
-                Update Email
+                {t.settings.updateEmail}
               </Button>
             </div>
           </div>
@@ -153,20 +163,20 @@ export default function SettingsPage() {
         {/* Password */}
         <Card>
           <h2 className="text-sm font-semibold text-[var(--kfx-text)] mb-5">
-            Change Password
+            {t.settings.passwordSection}
           </h2>
           <div className="space-y-4">
             {pwdError && <Alert variant="error">{pwdError}</Alert>}
             <Input
-              label="New Password"
+              label={t.settings.newPassword}
               type="password"
               value={newPwd}
               onChange={(e) => setNewPwd(e.target.value)}
               autoComplete="new-password"
-              hint="Minimum 8 characters."
+              hint={t.settings.newPasswordHint}
             />
             <Input
-              label="Confirm New Password"
+              label={t.settings.confirmPassword}
               type="password"
               value={confirmPwd}
               onChange={(e) => setConfirmPwd(e.target.value)}
@@ -179,7 +189,7 @@ export default function SettingsPage() {
                 loading={savingPwd}
                 onClick={handleUpdatePassword}
               >
-                Change Password
+                {t.settings.changePassword}
               </Button>
             </div>
           </div>
@@ -188,59 +198,61 @@ export default function SettingsPage() {
         {/* Notifications */}
         <Card>
           <h2 className="text-sm font-semibold text-[var(--kfx-text)] mb-5">
-            Notification Preferences
+            {t.settings.notificationsSection}
           </h2>
           <div className="space-y-4">
-            {NOTIFICATION_PREFS.map(({ key, label, desc }) => (
-              <div
-                key={key}
-                className="flex items-start justify-between gap-4 py-1"
-              >
-                <div>
-                  <p className="text-sm text-[var(--kfx-text)]">{label}</p>
-                  <p className="text-xs text-[var(--kfx-text-muted)] mt-0.5">
-                    {desc}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => toggleNotification(key)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 mt-0.5 ${
-                    notifications[key]
-                      ? 'bg-[var(--kfx-accent)]'
-                      : 'bg-[var(--kfx-surface-raised)] border border-[var(--kfx-border)]'
-                  }`}
-                  role="switch"
-                  aria-checked={notifications[key]}
+            {NOTIFICATION_PREFS.map(({ key }) => {
+              const { label, desc } = notifLabels[key]
+              return (
+                <div
+                  key={key}
+                  className="flex items-start justify-between gap-4 py-1"
                 >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                  <div>
+                    <p className="text-sm text-[var(--kfx-text)]">{label}</p>
+                    <p className="text-xs text-[var(--kfx-text-muted)] mt-0.5">
+                      {desc}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleNotification(key)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 mt-0.5 ${
                       notifications[key]
-                        ? 'translate-x-[18px]'
-                        : 'translate-x-[3px]'
+                        ? 'bg-[var(--kfx-accent)]'
+                        : 'bg-[var(--kfx-surface-raised)] border border-[var(--kfx-border)]'
                     }`}
-                  />
-                </button>
-              </div>
-            ))}
+                    role="switch"
+                    aria-checked={notifications[key]}
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                        notifications[key]
+                          ? 'translate-x-[18px]'
+                          : 'translate-x-[3px]'
+                      }`}
+                    />
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </Card>
 
         {/* Danger zone */}
         <Card>
           <h2 className="text-sm font-semibold text-[var(--kfx-danger)] mb-2">
-            Danger Zone
+            {t.settings.dangerZone}
           </h2>
           <p className="text-xs text-[var(--kfx-text-muted)] mb-4">
-            Closing your account will permanently remove all your data. This
-            action cannot be undone.
+            {t.settings.dangerZoneDesc}
           </p>
           <Button
             variant="danger"
             size="sm"
             onClick={() => setShowDeleteDlg(true)}
           >
-            Close Account
+            {t.settings.closeAccount}
           </Button>
         </Card>
       </div>
