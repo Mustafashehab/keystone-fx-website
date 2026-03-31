@@ -68,12 +68,11 @@ const PortalI18nContext = createContext<PortalI18nContextValue>({
 })
 
 export function PortalI18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLang] = useState<PortalLang>('en')
-
-  useEffect(() => {
-    const saved = localStorage.getItem('portal-lang') as PortalLang | null
-    if (saved === 'en' || saved === 'ar') setLang(saved)
-  }, [])
+  const [lang, setLang] = useState<PortalLang>(() => {
+    if (typeof window === 'undefined') return 'en'
+    const saved = localStorage.getItem('portal-lang')
+    return saved === 'ar' ? 'ar' : 'en'
+  })
 
   useEffect(() => {
     document.documentElement.dir = translations[lang].dir
