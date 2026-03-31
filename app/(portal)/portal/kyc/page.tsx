@@ -14,51 +14,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useToast } from '@/components/ui/Toast'
 import { cn } from '@/lib/utils'
 import type { KYCSubmission, ClientProfile } from '@/types'
-
-const EMPLOYMENT_OPTIONS = [
-  { label: 'Employed',       value: 'employed' },
-  { label: 'Self-Employed',  value: 'self_employed' },
-  { label: 'Business Owner', value: 'business_owner' },
-  { label: 'Retired',        value: 'retired' },
-  { label: 'Unemployed',     value: 'unemployed' },
-  { label: 'Student',        value: 'student' },
-]
-
-const INCOME_OPTIONS = [
-  { label: 'Under $25,000',       value: 'under_25k' },
-  { label: '$25,000 – $50,000',   value: '25k_50k' },
-  { label: '$50,000 – $100,000',  value: '50k_100k' },
-  { label: '$100,000 – $250,000', value: '100k_250k' },
-  { label: '$250,000 – $500,000', value: '250k_500k' },
-  { label: 'Over $500,000',       value: 'over_500k' },
-]
-
-const SOURCE_OF_FUNDS_OPTIONS = [
-  { label: 'Employment Income',  value: 'employment' },
-  { label: 'Business Income',    value: 'business' },
-  { label: 'Investments',        value: 'investments' },
-  { label: 'Inheritance / Gift', value: 'inheritance' },
-  { label: 'Property Sale',      value: 'property_sale' },
-  { label: 'Savings',            value: 'savings' },
-  { label: 'Other',              value: 'other' },
-]
-
-const EXPERIENCE_OPTIONS = [
-  { label: 'No experience',      value: 'none' },
-  { label: 'Less than 1 year',   value: 'less_1yr' },
-  { label: '1 – 3 years',        value: '1_3yr' },
-  { label: '3 – 5 years',        value: '3_5yr' },
-  { label: '5 – 10 years',       value: '5_10yr' },
-  { label: 'More than 10 years', value: 'over_10yr' },
-]
-
-const INVESTMENT_OBJECTIVES = [
-  { label: 'Capital Growth',    value: 'capital_growth' },
-  { label: 'Income Generation', value: 'income' },
-  { label: 'Hedging',           value: 'hedging' },
-  { label: 'Speculation',       value: 'speculation' },
-  { label: 'Diversification',   value: 'diversification' },
-]
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 const COUNTRIES = [
   { label: 'Afghanistan', value: 'AF' },
@@ -258,8 +214,6 @@ const COUNTRIES = [
   { label: 'Zimbabwe', value: 'ZW' },
 ]
 
-const SECTIONS = ['Personal Info', 'Address', 'Financial Profile', 'Declarations']
-
 // Reusable red star component
 const Req = () => <span className="text-red-500 ml-0.5">*</span>
 
@@ -267,6 +221,7 @@ export default function KYCPage() {
   const router   = useRouter()
   const supabase = createClient()
   const { success, error: toastError } = useToast()
+  const { t } = usePortalI18n()
 
   const [profile,       setProfile]       = useState<ClientProfile | null>(null)
   const [kyc,           setKYC]           = useState<KYCSubmission | null>(null)
@@ -277,6 +232,51 @@ export default function KYCPage() {
   const [objectives,    setObjectives]    = useState<string[]>([])
   const [isPEP,         setIsPEP]         = useState(false)
   const [isUSPerson,    setIsUSPerson]    = useState(false)
+
+  const employmentOptions = [
+    { label: t.kyc.employment.employed,      value: 'employed' },
+    { label: t.kyc.employment.selfEmployed,  value: 'self_employed' },
+    { label: t.kyc.employment.businessOwner, value: 'business_owner' },
+    { label: t.kyc.employment.retired,       value: 'retired' },
+    { label: t.kyc.employment.unemployed,    value: 'unemployed' },
+    { label: t.kyc.employment.student,       value: 'student' },
+  ]
+
+  const incomeOptions = [
+    { label: t.kyc.income.under25k, value: 'under_25k' },
+    { label: t.kyc.income.k25_50,   value: '25k_50k' },
+    { label: t.kyc.income.k50_100,  value: '50k_100k' },
+    { label: t.kyc.income.k100_250, value: '100k_250k' },
+    { label: t.kyc.income.k250_500, value: '250k_500k' },
+    { label: t.kyc.income.over500k, value: 'over_500k' },
+  ]
+
+  const fundsOptions = [
+    { label: t.kyc.funds.employment,   value: 'employment' },
+    { label: t.kyc.funds.business,     value: 'business' },
+    { label: t.kyc.funds.investments,  value: 'investments' },
+    { label: t.kyc.funds.inheritance,  value: 'inheritance' },
+    { label: t.kyc.funds.propertySale, value: 'property_sale' },
+    { label: t.kyc.funds.savings,      value: 'savings' },
+    { label: t.kyc.funds.other,        value: 'other' },
+  ]
+
+  const experienceOptions = [
+    { label: t.kyc.experience.none,     value: 'none' },
+    { label: t.kyc.experience.less1yr,  value: 'less_1yr' },
+    { label: t.kyc.experience.yr1_3,    value: '1_3yr' },
+    { label: t.kyc.experience.yr3_5,    value: '3_5yr' },
+    { label: t.kyc.experience.yr5_10,   value: '5_10yr' },
+    { label: t.kyc.experience.over10yr, value: 'over_10yr' },
+  ]
+
+  const investmentObjectiveOptions = [
+    { label: t.kyc.objectives.capitalGrowth,   value: 'capital_growth' },
+    { label: t.kyc.objectives.income,          value: 'income' },
+    { label: t.kyc.objectives.hedging,         value: 'hedging' },
+    { label: t.kyc.objectives.speculation,     value: 'speculation' },
+    { label: t.kyc.objectives.diversification, value: 'diversification' },
+  ]
 
   const { register, watch, setValue, getValues } = useForm<KYCFormData>({
     defaultValues: {
@@ -458,7 +458,7 @@ export default function KYCPage() {
   if (loading) {
     return (
       <div>
-        <PortalHeader title="KYC Verification" subtitle="Complete your identity profile." />
+        <PortalHeader title={t.kyc.title} subtitle={t.kyc.subtitle} />
         <div className="p-6 space-y-3">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-12 bg-[#f1f5f9] rounded animate-pulse" />
@@ -473,23 +473,21 @@ export default function KYCPage() {
   return (
     <div>
       <PortalHeader
-        title="KYC Verification"
-        subtitle="Complete your Know Your Customer profile to activate your account."
+        title={t.kyc.title}
+        subtitle={t.kyc.subtitle}
         action={kyc ? <StatusBadge type="kyc" status={kyc.status} /> : undefined}
       />
 
       <div className="p-6">
         {isReadOnly && (
           <Alert variant={kyc?.status === 'approved' ? 'success' : 'info'} className="mb-6">
-            {kyc?.status === 'approved'
-              ? 'Your KYC has been approved. No further action required.'
-              : 'Your KYC submission is currently under review. You will be notified of any updates.'}
+            {kyc?.status === 'approved' ? t.kyc.approved : t.kyc.underReview}
           </Alert>
         )}
 
         {kyc?.status === 'rejected' && kyc.rejection_reason && (
-          <Alert variant="error" title="KYC Rejected" className="mb-6">
-            {kyc.rejection_reason}. Please correct the information below and resubmit.
+          <Alert variant="error" title={t.kyc.rejected} className="mb-6">
+            {kyc.rejection_reason}. {t.kyc.rejectedDesc}
           </Alert>
         )}
 
@@ -498,7 +496,7 @@ export default function KYCPage() {
         )}
 
         <div className="flex gap-1 mb-6 bg-white border border-[#e5e7eb] rounded-lg p-1">
-          {SECTIONS.map((s, i) => (
+          {t.kyc.sections.map((s, i) => (
             <button key={s} type="button" onClick={() => setActiveSection(i)}
               className={cn(
                 'flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all',
@@ -514,18 +512,18 @@ export default function KYCPage() {
         {/* SECTION 0 — Personal Info */}
         {activeSection === 0 && (
           <Card>
-            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">Personal Information</h2>
+            <h2 className="text-sm font-semibold text-[#0f172a] mb-5">{t.kyc.personalInfo}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label={<>First Name <Req /></>}    required disabled={isReadOnly} {...register('firstName')} />
-              <Input label={<>Last Name <Req /></>}     required disabled={isReadOnly} {...register('lastName')} />
-              <Input label={<>Date of Birth <Req /></>} type="date" required disabled={isReadOnly} {...register('dateOfBirth')} />
-              <Input label={<>Phone Number <Req /></>}  type="tel" required disabled={isReadOnly} placeholder="+1 234 567 8900" {...register('phone')} />
-              <Select label={<>Nationality <Req /></>}          required disabled={isReadOnly} options={COUNTRIES} placeholder="Select nationality" {...register('nationality')} />
-              <Select label="Country of Residence" disabled={isReadOnly} options={COUNTRIES} placeholder="Select country (optional)" {...register('countryOfResidence')} />
+              <Input label={<>{t.kyc.firstName} <Req /></>}    required disabled={isReadOnly} {...register('firstName')} />
+              <Input label={<>{t.kyc.lastName} <Req /></>}     required disabled={isReadOnly} {...register('lastName')} />
+              <Input label={<>{t.kyc.dateOfBirth} <Req /></>}  type="date" required disabled={isReadOnly} {...register('dateOfBirth')} />
+              <Input label={<>{t.kyc.phoneNumber} <Req /></>}  type="tel" required disabled={isReadOnly} placeholder={t.kyc.phonePlaceholder} {...register('phone')} />
+              <Select label={<>{t.kyc.nationality} <Req /></>} required disabled={isReadOnly} options={COUNTRIES} placeholder={t.kyc.selectNationality} {...register('nationality')} />
+              <Select label={t.kyc.countryOfResidence}         disabled={isReadOnly} options={COUNTRIES} placeholder={t.kyc.countryOptional} {...register('countryOfResidence')} />
             </div>
             <div className="mt-4 flex justify-end">
               <Button type="button" variant="primary" onClick={() => setActiveSection(1)}>
-                Next: Address →
+                {t.kyc.nextAddress}
               </Button>
             </div>
           </Card>
@@ -535,19 +533,19 @@ export default function KYCPage() {
         {activeSection === 1 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
-              Residential Address <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
+              {t.kyc.address} <span className="text-xs font-normal text-[#94a3b8]">{t.kyc.addressOptional}</span>
             </h2>
             <div className="space-y-4">
-              <Input label="Address Line 1" disabled={isReadOnly} placeholder="Street address" {...register('addressLine1')} />
-              <Input label="Address Line 2" disabled={isReadOnly} placeholder="Apartment, suite, etc." {...register('addressLine2')} />
+              <Input label={t.kyc.addressLine1} disabled={isReadOnly} placeholder={t.kyc.addressLine1Placeholder} {...register('addressLine1')} />
+              <Input label={t.kyc.addressLine2} disabled={isReadOnly} placeholder={t.kyc.addressLine2Placeholder} {...register('addressLine2')} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="City"        disabled={isReadOnly} {...register('city')} />
-                <Input label="Postal Code" disabled={isReadOnly} {...register('postalCode')} />
+                <Input label={t.kyc.city}       disabled={isReadOnly} {...register('city')} />
+                <Input label={t.kyc.postalCode} disabled={isReadOnly} {...register('postalCode')} />
               </div>
             </div>
             <div className="mt-4 flex justify-between">
-              <Button type="button" variant="secondary" onClick={() => setActiveSection(0)}>← Back</Button>
-              <Button type="button" variant="primary"   onClick={() => setActiveSection(2)}>Next: Financial Profile →</Button>
+              <Button type="button" variant="secondary" onClick={() => setActiveSection(0)}>{t.kyc.back}</Button>
+              <Button type="button" variant="primary"   onClick={() => setActiveSection(2)}>{t.kyc.nextFinancial}</Button>
             </div>
           </Card>
         )}
@@ -556,24 +554,24 @@ export default function KYCPage() {
         {activeSection === 2 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
-              Financial Profile <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
+              {t.kyc.financialProfile} <span className="text-xs font-normal text-[#94a3b8]">{t.kyc.financialOptional}</span>
             </h2>
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Select label="Employment Status"   disabled={isReadOnly} options={EMPLOYMENT_OPTIONS}     placeholder="Select status"    {...register('employmentStatus')} />
+                <Select label={t.kyc.employmentStatus}  disabled={isReadOnly} options={employmentOptions}  placeholder={t.kyc.selectStatus}    {...register('employmentStatus')} />
                 {(employmentStatus === 'employed' || employmentStatus === 'self_employed') && (
-                  <Input label="Employer / Company Name" disabled={isReadOnly} {...register('employerName')} />
+                  <Input label={t.kyc.employerName} disabled={isReadOnly} {...register('employerName')} />
                 )}
-                <Select label="Annual Income Range" disabled={isReadOnly} options={INCOME_OPTIONS}          placeholder="Select range"     {...register('annualIncomeRange')} />
-                <Select label="Source of Funds"     disabled={isReadOnly} options={SOURCE_OF_FUNDS_OPTIONS} placeholder="Select source"    {...register('sourceOfFunds')} />
-                <Select label="Trading Experience"  disabled={isReadOnly} options={EXPERIENCE_OPTIONS}      placeholder="Select experience" {...register('tradingExperience')} />
+                <Select label={t.kyc.annualIncomeRange}  disabled={isReadOnly} options={incomeOptions}      placeholder={t.kyc.selectRange}     {...register('annualIncomeRange')} />
+                <Select label={t.kyc.sourceOfFunds}      disabled={isReadOnly} options={fundsOptions}       placeholder={t.kyc.selectSource}    {...register('sourceOfFunds')} />
+                <Select label={t.kyc.tradingExperience}  disabled={isReadOnly} options={experienceOptions}  placeholder={t.kyc.selectExperience} {...register('tradingExperience')} />
               </div>
               <div>
                 <p className="text-[13px] font-medium text-[#0f172a] mb-2">
-                  Investment Objectives <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
+                  {t.kyc.investmentObjectives} <span className="text-xs font-normal text-[#94a3b8]">{t.kyc.investmentOptional}</span>
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {INVESTMENT_OBJECTIVES.map((obj) => (
+                  {investmentObjectiveOptions.map((obj) => (
                     <button key={obj.value} type="button" disabled={isReadOnly}
                       onClick={() => toggleObjective(obj.value)}
                       className={cn(
@@ -589,8 +587,8 @@ export default function KYCPage() {
               </div>
             </div>
             <div className="mt-4 flex justify-between">
-              <Button type="button" variant="secondary" onClick={() => setActiveSection(1)}>← Back</Button>
-              <Button type="button" variant="primary"   onClick={() => setActiveSection(3)}>Next: Declarations →</Button>
+              <Button type="button" variant="secondary" onClick={() => setActiveSection(1)}>{t.kyc.back}</Button>
+              <Button type="button" variant="primary"   onClick={() => setActiveSection(3)}>{t.kyc.nextDeclarations}</Button>
             </div>
           </Card>
         )}
@@ -599,12 +597,12 @@ export default function KYCPage() {
         {activeSection === 3 && (
           <Card>
             <h2 className="text-sm font-semibold text-[#0f172a] mb-5">
-              Regulatory Declarations <span className="text-xs font-normal text-[#94a3b8]">(optional)</span>
+              {t.kyc.declarations} <span className="text-xs font-normal text-[#94a3b8]">{t.kyc.declarationsOptional}</span>
             </h2>
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Select label="Tax Residency" disabled={isReadOnly} options={COUNTRIES} placeholder="Select country" {...register('taxResidency')} />
-                <Input  label="Tax ID / TIN"  disabled={isReadOnly} placeholder="e.g. 123-45-6789" {...register('taxIdNumber')} />
+                <Select label={t.kyc.taxResidency} disabled={isReadOnly} options={COUNTRIES} placeholder={t.kyc.selectCountry} {...register('taxResidency')} />
+                <Input  label={t.kyc.taxId}        disabled={isReadOnly} placeholder="e.g. 123-45-6789" {...register('taxIdNumber')} />
               </div>
               <div className="space-y-4 pt-2">
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -612,13 +610,13 @@ export default function KYCPage() {
                     disabled={isReadOnly}
                     className="mt-1 h-4 w-4 rounded border-[#cbd5e1] accent-[#0f172a]" />
                   <div>
-                    <p className="text-sm font-medium text-[#0f172a]">I am a Politically Exposed Person (PEP)</p>
-                    <p className="text-xs text-[#64748b] mt-0.5">A PEP is someone who holds or has held a prominent public position.</p>
+                    <p className="text-sm font-medium text-[#0f172a]">{t.kyc.pepLabel}</p>
+                    <p className="text-xs text-[#64748b] mt-0.5">{t.kyc.pepDesc}</p>
                   </div>
                 </label>
                 {isPEP && (
-                  <Textarea label="PEP Details" disabled={isReadOnly}
-                    placeholder="Please describe your position and the relevant country."
+                  <Textarea label={t.kyc.pepDetails} disabled={isReadOnly}
+                    placeholder={t.kyc.pepDetailsPlaceholder}
                     rows={3} {...register('pepDetails')} />
                 )}
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -626,17 +624,17 @@ export default function KYCPage() {
                     disabled={isReadOnly}
                     className="mt-1 h-4 w-4 rounded border-[#cbd5e1] accent-[#0f172a]" />
                   <div>
-                    <p className="text-sm font-medium text-[#0f172a]">I am a US Person</p>
-                    <p className="text-xs text-[#64748b] mt-0.5">Includes US citizens, residents, and entities with US tax obligations.</p>
+                    <p className="text-sm font-medium text-[#0f172a]">{t.kyc.usPersonLabel}</p>
+                    <p className="text-xs text-[#64748b] mt-0.5">{t.kyc.usPersonDesc}</p>
                   </div>
                 </label>
               </div>
             </div>
             <div className="mt-6 flex justify-between">
-              <Button type="button" variant="secondary" onClick={() => setActiveSection(2)}>← Back</Button>
+              <Button type="button" variant="secondary" onClick={() => setActiveSection(2)}>{t.kyc.back}</Button>
               {!isReadOnly && (
                 <Button type="button" variant="primary" loading={submitting} onClick={onSave}>
-                  Save & Continue
+                  {t.kyc.saveAndContinue}
                 </Button>
               )}
             </div>
