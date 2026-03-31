@@ -114,8 +114,8 @@ export default async function AdminDashboardPage() {
                     className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8fafc] transition-colors">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-[#0f172a]">
-                        {(w.client_profiles as { first_name: string; last_name: string } | null)?.first_name}{' '}
-                        {(w.client_profiles as { first_name: string; last_name: string } | null)?.last_name}
+{(w.client_profiles as { first_name: string; last_name: string }[] | null)?.[0]?.first_name}{' '}
+{(w.client_profiles as { first_name: string; last_name: string }[] | null)?.[0]?.last_name}
                       </p>
                       <p className="text-xs text-[#94a3b8]">{formatTimeAgo(w.created_at)}</p>
                     </div>

@@ -42,7 +42,7 @@ export default async function About({ params }: { params: Promise<{ lang: Lang }
       <section className="bg-slate-900 text-white py-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {(t(lang, "about.stats") as Stat[]).map((stat, idx) => (
+            {(t(lang, "about.stats") as unknown as Stat[]).map((stat, idx) => (
               <div key={idx} className="text-center">
                 <div className="text-4xl font-bold text-yellow-400 mb-2">{stat.value}</div>
                 <div className="text-slate-300 text-sm">{stat.label}</div>
@@ -55,7 +55,7 @@ export default async function About({ params }: { params: Promise<{ lang: Lang }
       <section className="mx-auto max-w-6xl px-6 py-20">
         <h2 className="text-3xl font-bold text-slate-900 text-center mb-12">{t(lang, "about.whyUs.title")}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {(t(lang, "about.whyUs.reasons") as Reason[]).map((reason, idx) => (
+          {(t(lang, "about.whyUs.reasons") as unknown as Reason[]).map((reason, idx) => (
             <div key={idx} className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-lg transition-shadow">
               <div className="text-4xl mb-4">{reason.icon}</div>
               <h3 className="text-xl font-semibold text-slate-900 mb-3">{reason.title}</h3>

@@ -95,7 +95,7 @@ export default async function Accounts({ params }: { params: Promise<{ lang: Lan
             <p className="text-xl text-slate-300">{t(lang, "accounts.steps.subtitle")}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {(t(lang, "accounts.steps.list") as Step[]).map((step, idx) => (
+{(t(lang, "accounts.steps.list") as unknown as Step[]).map((step, idx) => (
               <div key={idx} className="relative">
                 {idx < 2 && (
                   <div className="hidden md:block absolute top-8 left-full w-full h-1 bg-gradient-to-r from-yellow-400 to-transparent"></div>
