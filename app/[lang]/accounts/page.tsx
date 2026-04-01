@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Lang, t } from "@/lib/i18n";
 
 interface Step { title: string; description: string }
@@ -44,13 +45,13 @@ export default async function Accounts({ params }: { params: Promise<{ lang: Lan
           </h1>
           <p className="mx-auto max-w-3xl text-xl text-slate-300 leading-relaxed mb-12">{t(lang, "accounts.subtitle")}</p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <button className="group relative overflow-hidden rounded-xl bg-yellow-400 px-10 py-4 text-lg font-bold text-slate-900 transition-all hover:bg-yellow-300 hover:shadow-2xl hover:shadow-yellow-400/50 hover:scale-105">
+            <Link href="/portal/login" className="group relative overflow-hidden rounded-xl bg-yellow-400 px-10 py-4 text-lg font-bold text-slate-900 transition-all hover:bg-yellow-300 hover:shadow-2xl hover:shadow-yellow-400/50 hover:scale-105">
               <span className="relative z-10">{t(lang, "accounts.startTrading")}</span>
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-300 to-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </button>
-            <button className="group rounded-xl border-2 border-yellow-400 px-10 py-4 text-lg font-semibold text-white transition-all hover:bg-yellow-400 hover:text-slate-900 hover:shadow-2xl hover:shadow-yellow-400/30 hover:scale-105">
+            </Link>
+            <Link href="/portal/login" className="group rounded-xl border-2 border-yellow-400 px-10 py-4 text-lg font-semibold text-white transition-all hover:bg-yellow-400 hover:text-slate-900 hover:shadow-2xl hover:shadow-yellow-400/30 hover:scale-105">
               {t(lang, "accounts.openAccount")}
-            </button>
+            </Link>
           </div>
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center"><div className="text-4xl font-bold text-yellow-400 mb-2">50K+</div><div className="text-sm text-slate-400">{t(lang, "accounts.hero.traders")}</div></div>
@@ -126,9 +127,9 @@ export default async function Accounts({ params }: { params: Promise<{ lang: Lan
             </div>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">{t(lang, "accounts.bonus.title")}</h2>
             <p className="text-xl text-slate-800 mb-8 max-w-2xl mx-auto">{t(lang, "accounts.bonus.terms")}</p>
-            <button className="group relative overflow-hidden rounded-xl bg-slate-900 px-12 py-5 text-lg font-bold text-white transition-all hover:bg-slate-800 hover:shadow-2xl hover:scale-105">
+            <Link href="/portal/login" className="group relative overflow-hidden rounded-xl bg-slate-900 px-12 py-5 text-lg font-bold text-white transition-all hover:bg-slate-800 hover:shadow-2xl hover:scale-105 inline-block">
               <span className="relative z-10">{t(lang, "accounts.openAccount")}</span>
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -166,9 +167,9 @@ export default async function Accounts({ params }: { params: Promise<{ lang: Lan
                     </div>
                   ))}
                 </div>
-                <button className={`w-full rounded-xl px-6 py-4 text-lg font-bold transition-all ${idx === 1 ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-xl hover:shadow-2xl' : 'bg-yellow-400 text-slate-900 hover:bg-yellow-300 hover:shadow-xl hover:shadow-yellow-400/50'}`}>
+                <Link href="/portal/login" className={`block w-full rounded-xl px-6 py-4 text-lg font-bold text-center transition-all ${idx === 1 ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-xl hover:shadow-2xl' : 'bg-yellow-400 text-slate-900 hover:bg-yellow-300 hover:shadow-xl hover:shadow-yellow-400/50'}`}>
                   {t(lang, "accounts.compare.select")}
-                </button>
+                </Link>
               </div>
             ))}
           </div>
@@ -179,9 +180,9 @@ export default async function Accounts({ params }: { params: Promise<{ lang: Lan
         <div className="rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 p-16 text-center text-white shadow-2xl">
           <h2 className="text-4xl font-bold mb-6">{t(lang, "accounts.finalCta.title")}</h2>
           <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">{t(lang, "accounts.finalCta.subtitle")}</p>
-          <button className="rounded-xl bg-yellow-400 px-12 py-5 text-lg font-bold text-slate-900 transition-all hover:bg-yellow-300 hover:shadow-2xl hover:shadow-yellow-400/50 hover:scale-105">
+          <Link href="/portal/login" className="inline-block rounded-xl bg-yellow-400 px-12 py-5 text-lg font-bold text-slate-900 transition-all hover:bg-yellow-300 hover:shadow-2xl hover:shadow-yellow-400/50 hover:scale-105">
             {t(lang, "accounts.startTrading")}
-          </button>
+          </Link>
         </div>
       </section>
     </div>
