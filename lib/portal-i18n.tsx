@@ -13,6 +13,7 @@ interface PortalTranslations {
     documents: string
     accountApplication: string
     deposit: string
+    mt5Terminal: string
     withdrawal: string
     support: string
     settings: string
@@ -315,6 +316,7 @@ const translations: Record<PortalLang, PortalTranslations> = {
       documents:          'Documents',
       accountApplication: 'Account Application',
       deposit:            'Deposit USDT',
+      mt5Terminal:         'MT5 Terminal',
       withdrawal:         'Withdraw USDT',
       support:            'Support',
       settings:           'Settings',
@@ -616,6 +618,7 @@ const translations: Record<PortalLang, PortalTranslations> = {
       documents:          'المستندات',
       accountApplication: 'طلب الحساب',
       deposit:            'إيداع USDT',
+      mt5Terminal:         'منصة MT5',
       withdrawal:         'سحب USDT',
       support:            'الدعم',
       settings:           'الإعدادات',
