@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 
 const MT5_LINKS = {
@@ -11,14 +11,157 @@ const MT5_LINKS = {
   web: 'https://trade.mql5.com/trade',
 }
 
-// ─── Animated counter ────────────────────────────────────────────────────────
+// ─── Data stream canvas (Bloomberg-style floating data) ──────────────────────
+
+const DATA_TOKENS = [
+  '1.2847', '0.9923', '1.0841', '149.52', '0.6534', '1.3721',
+  'EUR/USD', 'GBP/JPY', 'XAU/USD', 'BTC', 'ETH', 'SPX',
+  '2847.50', '0.8891', '108.24', '1921.3', '34521', '0.7102',
+  '+0.12%', '-0.08%', '+1.24%', '-0.31%', '+0.05%', '+0.67%',
+  'BID', 'ASK', 'FILL', 'EXEC', 'ACK', 'SYN',
+]
+
+function DataStreamCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const particles = useRef<{ x: number; y: number; speed: number; text: string; opacity: number; size: number }[]>([])
+  const raf = useRef<number>(0)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    function resize() {
+      if (!canvas) return
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio
+      canvas.height = canvas.offsetHeight * window.devicePixelRatio
+      ctx!.scale(window.devicePixelRatio, window.devicePixelRatio)
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    // Seed initial particles
+    const w = canvas.offsetWidth
+    const h = canvas.offsetHeight
+    for (let i = 0; i < 35; i++) {
+      particles.current.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        speed: 0.3 + Math.random() * 0.5,
+        text: DATA_TOKENS[Math.floor(Math.random() * DATA_TOKENS.length)],
+        opacity: Math.random() * 0.15 + 0.05,
+        size: 9 + Math.random() * 4,
+      })
+    }
+
+    function frame() {
+      if (!canvas || !ctx) return
+      const cw = canvas.offsetWidth
+      const ch = canvas.offsetHeight
+      ctx.clearRect(0, 0, cw, ch)
+
+      for (const p of particles.current) {
+        p.y -= p.speed
+        if (p.y < -20) {
+          p.y = ch + 10
+          p.x = Math.random() * cw
+          p.text = DATA_TOKENS[Math.floor(Math.random() * DATA_TOKENS.length)]
+          p.opacity = Math.random() * 0.15 + 0.05
+        }
+        // Fade near top and bottom
+        const edgeFade = Math.min(p.y / 80, (ch - p.y) / 80, 1)
+        const isGold = /[0-9]/.test(p.text[0]) || p.text.startsWith('+') || p.text.startsWith('-')
+        ctx.font = `${p.size}px ui-monospace, SFMono-Regular, monospace`
+        ctx.fillStyle = isGold
+          ? `rgba(201,168,76,${p.opacity * edgeFade})`
+          : `rgba(148,163,184,${p.opacity * edgeFade * 0.7})`
+        ctx.fillText(p.text, p.x, p.y)
+      }
+
+      raf.current = requestAnimationFrame(frame)
+    }
+    raf.current = requestAnimationFrame(frame)
+
+    return () => {
+      cancelAnimationFrame(raf.current)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ opacity: 1 }}
+    />
+  )
+}
+
+// ─── Execution speed bar ─────────────────────────────────────────────────────
+
+function SpeedBar() {
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>
+    function cycle() {
+      setProgress(0)
+      // Small delay then fill fast
+      timeout = setTimeout(() => {
+        setProgress(100)
+        // Hold then reset
+        timeout = setTimeout(cycle, 2500)
+      }, 500)
+    }
+    cycle()
+    return () => clearTimeout(timeout)
+  }, [])
+
+  return (
+    <div className="flex items-center gap-4 max-w-xs mx-auto mt-10">
+      <span className="text-xs font-mono text-slate-400 whitespace-nowrap">EXEC SPEED</span>
+      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${progress}%`,
+            background: 'linear-gradient(90deg, #c9a84c, #f5e6a3)',
+            transition: progress === 0 ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        />
+      </div>
+      <span className="text-xs font-mono font-bold text-[#c9a84c] whitespace-nowrap">8ms</span>
+    </div>
+  )
+}
+
+// ─── Live-flicker stat counter ───────────────────────────────────────────────
 
 function StatCounter({ target, suffix, label, duration = 2000 }: { target: number; suffix: string; label: string; duration?: number }) {
   const [value, setValue] = useState(0)
   const started = useRef(false)
+  const done = useRef(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
-  const callbackRef = (node: HTMLDivElement | null) => {
+  // Flicker after count-up completes
+  useEffect(() => {
+    if (!done.current) return
+    const interval = setInterval(() => {
+      setValue(v => {
+        const delta = Math.random() > 0.5 ? 1 : -1
+        const next = v + delta
+        // Keep close to target
+        if (Math.abs(next - target) > 2) return target
+        return next
+      })
+      // Restore after a beat
+      setTimeout(() => setValue(target), 200)
+    }, 3000 + Math.random() * 2000)
+    return () => clearInterval(interval)
+  }, [target])
+
+  const callbackRef = useCallback((node: HTMLDivElement | null) => {
     if (observerRef.current) {
       observerRef.current.disconnect()
       observerRef.current = null
@@ -32,12 +175,15 @@ function StatCounter({ target, suffix, label, duration = 2000 }: { target: numbe
             function tick(now: number) {
               const elapsed = now - start
               const progress = Math.min(elapsed / duration, 1)
-              // Slow start, fast middle, slow end (ease-in-out cubic)
               const eased = progress < 0.5
                 ? 4 * progress * progress * progress
                 : 1 - Math.pow(-2 * progress + 2, 3) / 2
               setValue(Math.round(eased * target))
-              if (progress < 1) requestAnimationFrame(tick)
+              if (progress < 1) {
+                requestAnimationFrame(tick)
+              } else {
+                done.current = true
+              }
             }
             requestAnimationFrame(tick)
           }
@@ -46,14 +192,127 @@ function StatCounter({ target, suffix, label, duration = 2000 }: { target: numbe
       )
       observerRef.current.observe(node)
     }
-  }
+  }, [target, duration])
 
   return (
     <div ref={callbackRef} className="text-center">
-      <p className="stat-number text-3xl md:text-4xl font-bold tabular-nums">
-        {value}<span className="stat-suffix">{suffix}</span>
+      <p className="text-3xl md:text-4xl font-bold tabular-nums text-[#c9a84c] font-mono">
+        {value}<span className="text-[#b8963f]">{suffix}</span>
       </p>
       <p className="text-sm text-slate-500 mt-1.5 font-medium">{label}</p>
+    </div>
+  )
+}
+
+// ─── Animated candlestick chart (inside desktop monitor icon) ────────────────
+
+function CandlestickIcon() {
+  const [candles, setCandles] = useState<{ o: number; c: number; h: number; l: number }[]>([])
+
+  useEffect(() => {
+    function gen(): { o: number; c: number; h: number; l: number } {
+      const o = 8 + Math.random() * 16
+      const c = 8 + Math.random() * 16
+      const h = Math.max(o, c) + Math.random() * 4
+      const l = Math.min(o, c) - Math.random() * 4
+      return { o, c, h, l }
+    }
+    setCandles(Array.from({ length: 6 }, gen))
+
+    const interval = setInterval(() => {
+      setCandles(prev => [...prev.slice(1), gen()])
+    }, 1200)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c]/10 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center shrink-0 relative">
+      {/* Monitor frame */}
+      <svg className="w-7 h-7 text-[#c9a84c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
+      </svg>
+      {/* Mini candlestick chart overlay */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 56 56">
+        {candles.map((c, i) => {
+          const x = 14 + i * 5
+          const green = c.c > c.o
+          const bodyTop = Math.min(c.o, c.c) + 8
+          const bodyBot = Math.max(c.o, c.c) + 8
+          return (
+            <g key={i} style={{ transition: 'all 0.4s ease' }}>
+              <line x1={x} y1={c.l + 8} x2={x} y2={c.h + 8} stroke={green ? '#22c55e' : '#ef4444'} strokeWidth={0.5} opacity={0.7} />
+              <rect x={x - 1.2} y={bodyTop} width={2.4} height={Math.max(bodyBot - bodyTop, 0.5)} fill={green ? '#22c55e' : '#ef4444'} opacity={0.8} rx={0.3} />
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+// ─── Mobile price line SVG ───────────────────────────────────────────────────
+
+function MobilePriceIcon() {
+  const [offset, setOffset] = useState(0)
+
+  useEffect(() => {
+    let frame: number
+    function tick() {
+      setOffset(prev => (prev + 0.3) % 100)
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  // Generate a smooth price-like path
+  const points: string[] = []
+  for (let i = 0; i <= 20; i++) {
+    const x = 20 + (i / 20) * 16
+    const y = 22 + Math.sin((i + offset) * 0.5) * 4 + Math.sin((i + offset) * 0.3) * 2
+    points.push(`${x},${y}`)
+  }
+
+  return (
+    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center shrink-0 relative">
+      <svg className="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+      </svg>
+      {/* Animated price line inside phone */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 56 56">
+        <polyline
+          points={points.join(' ')}
+          fill="none"
+          stroke="#10b981"
+          strokeWidth={0.8}
+          opacity={0.7}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  )
+}
+
+// ─── Connection lines between cards ──────────────────────────────────────────
+
+function ConnectionLine() {
+  return (
+    <div className="hidden md:flex justify-center py-2 overflow-hidden">
+      <svg width="200" height="32" viewBox="0 0 200 32" className="opacity-30">
+        {/* Line */}
+        <line x1="20" y1="16" x2="180" y2="16" stroke="#c9a84c" strokeWidth="1" strokeDasharray="4 4" />
+        {/* Traveling dot */}
+        <circle r="3" fill="#c9a84c" opacity="0.9">
+          <animateMotion dur="3.5s" repeatCount="indefinite" path="M20,16 L180,16" />
+        </circle>
+        <circle r="3" fill="#c9a84c" opacity="0.9">
+          <animateMotion dur="3.5s" repeatCount="indefinite" begin="1.75s" path="M20,16 L180,16" />
+        </circle>
+        {/* Endpoint nodes */}
+        <circle cx="20" cy="16" r="2.5" fill="none" stroke="#c9a84c" strokeWidth="1" />
+        <circle cx="180" cy="16" r="2.5" fill="none" stroke="#c9a84c" strokeWidth="1" />
+      </svg>
     </div>
   )
 }
@@ -75,7 +334,7 @@ function RevealCard({ children, className, style, glowColor = 'gold' }: {
     emerald: 'card-glow-emerald',
   }[glowColor]
 
-  const callbackRef = (node: HTMLDivElement | null) => {
+  const callbackRef = useCallback((node: HTMLDivElement | null) => {
     if (observerRef.current) {
       observerRef.current.disconnect()
       observerRef.current = null
@@ -92,7 +351,7 @@ function RevealCard({ children, className, style, glowColor = 'gold' }: {
       )
       observerRef.current.observe(node)
     }
-  }
+  }, [])
 
   return (
     <div
@@ -111,43 +370,24 @@ export default function PlatformsPage() {
   return (
     <>
       <style jsx>{`
-        /* ── Animation 1: Moving dot grid ── */
-        @keyframes gridDrift {
-          0%   { background-position: 0 0; }
-          100% { background-position: 48px 48px; }
+        /* ── Page entry stagger ── */
+        @keyframes heroEntry {
+          from { opacity: 0; transform: translateY(40px); filter: blur(6px); }
+          to   { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
-        .hero-grid {
-          background-image: radial-gradient(circle, rgba(201,168,76,0.35) 0.75px, transparent 0.75px);
-          background-size: 24px 24px;
-          animation: gridDrift 8s linear infinite;
-        }
+        .hero-badge    { animation: heroEntry 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
+        .hero-headline { animation: heroEntry 0.7s cubic-bezier(0.16,1,0.3,1) 0.25s both; }
+        .hero-subtitle { animation: heroEntry 0.7s cubic-bezier(0.16,1,0.3,1) 0.45s both; }
+        .hero-speed    { animation: heroEntry 0.7s cubic-bezier(0.16,1,0.3,1) 0.6s both; }
+        .hero-stats    { animation: heroEntry 0.7s cubic-bezier(0.16,1,0.3,1) 0.8s both; }
 
-        /* ── Animation 2: Scan line ── */
-        @keyframes scanline {
-          0%   { transform: translateY(-100%); opacity: 0; }
-          5%   { opacity: 0.6; }
-          95%  { opacity: 0.6; }
-          100% { transform: translateY(100vh); opacity: 0; }
-        }
-        .scan-line {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #c9a84c, transparent);
-          animation: scanline 4s ease-in-out infinite;
-          z-index: 1;
-          pointer-events: none;
-        }
-
-        /* ── Animation 3: Card border glow on hover ── */
+        /* ── Card hover glow ── */
         .card-glow-gold {
           transition: box-shadow 0.4s ease, border-color 0.4s ease, transform 0.4s ease;
         }
         .card-glow-gold:hover {
           border-color: rgba(201,168,76,0.4);
-          box-shadow: 0 0 0 1px rgba(201,168,76,0.15), 0 8px 40px rgba(201,168,76,0.12), 0 2px 8px rgba(0,0,0,0.04);
+          box-shadow: 0 0 0 1px rgba(201,168,76,0.1), 0 8px 40px rgba(201,168,76,0.12);
           transform: translateY(-2px);
         }
         .card-glow-blue {
@@ -155,7 +395,7 @@ export default function PlatformsPage() {
         }
         .card-glow-blue:hover {
           border-color: rgba(59,130,246,0.4);
-          box-shadow: 0 0 0 1px rgba(59,130,246,0.15), 0 8px 40px rgba(59,130,246,0.12), 0 2px 8px rgba(0,0,0,0.04);
+          box-shadow: 0 0 0 1px rgba(59,130,246,0.1), 0 8px 40px rgba(59,130,246,0.12);
           transform: translateY(-2px);
         }
         .card-glow-emerald {
@@ -163,28 +403,11 @@ export default function PlatformsPage() {
         }
         .card-glow-emerald:hover {
           border-color: rgba(16,185,129,0.4);
-          box-shadow: 0 0 0 1px rgba(16,185,129,0.15), 0 8px 40px rgba(16,185,129,0.12), 0 2px 8px rgba(0,0,0,0.04);
+          box-shadow: 0 0 0 1px rgba(16,185,129,0.1), 0 8px 40px rgba(16,185,129,0.12);
           transform: translateY(-2px);
         }
 
-        /* ── Animation 4: Floating icons ── */
-        @keyframes iconFloat {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-8px); }
-        }
-        .icon-float-1 { animation: iconFloat 3s ease-in-out infinite; }
-        .icon-float-2 { animation: iconFloat 3s ease-in-out 0.8s infinite; }
-        .icon-float-3 { animation: iconFloat 3s ease-in-out 1.6s infinite; }
-
-        /* ── Animation 5: Counter numbers ── */
-        .stat-number {
-          color: #c9a84c;
-        }
-        .stat-suffix {
-          color: #b8963f;
-        }
-
-        /* ── Animation 6: Button shimmer ── */
+        /* ── Button shimmer ── */
         .btn-shimmer {
           position: relative;
           overflow: hidden;
@@ -199,19 +422,10 @@ export default function PlatformsPage() {
           width: 100%;
           height: 100%;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-          transition: none;
         }
-        .btn-shimmer:hover::before {
-          animation: btnSweep 0.6s ease forwards;
-        }
-        .btn-shimmer:hover {
-          box-shadow: 0 8px 32px rgba(201,168,76,0.4);
-          transform: translateY(-1px);
-        }
-        @keyframes btnSweep {
-          0%   { left: -100%; }
-          100% { left: 100%; }
-        }
+        .btn-shimmer:hover::before { animation: btnSweep 0.6s ease forwards; }
+        .btn-shimmer:hover { box-shadow: 0 8px 32px rgba(201,168,76,0.4); transform: translateY(-1px); }
+        @keyframes btnSweep { from { left: -100%; } to { left: 100%; } }
 
         .btn-outline {
           position: relative;
@@ -226,15 +440,9 @@ export default function PlatformsPage() {
           width: 100%;
           height: 100%;
           background: linear-gradient(90deg, transparent, rgba(201,168,76,0.08), transparent);
-          transition: none;
         }
-        .btn-outline:hover::before {
-          animation: btnSweep 0.6s ease forwards;
-        }
-        .btn-outline:hover {
-          border-color: rgba(201,168,76,0.5);
-          transform: translateY(-1px);
-        }
+        .btn-outline:hover::before { animation: btnSweep 0.6s ease forwards; }
+        .btn-outline:hover { border-color: rgba(201,168,76,0.5); transform: translateY(-1px); }
 
         .btn-dark {
           position: relative;
@@ -249,34 +457,9 @@ export default function PlatformsPage() {
           width: 100%;
           height: 100%;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-          transition: none;
         }
-        .btn-dark:hover::before {
-          animation: btnSweep 0.6s ease forwards;
-        }
-        .btn-dark:hover {
-          transform: translateY(-1px);
-        }
-
-        /* ── Animation 7: Page entry stagger ── */
-        @keyframes heroEntry {
-          from { opacity: 0; transform: translateY(40px); filter: blur(8px); }
-          to   { opacity: 1; transform: translateY(0); filter: blur(0); }
-        }
-        .hero-badge    { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
-        .hero-headline { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
-        .hero-subtitle { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.5s both; }
-        .hero-line     { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.7s both; }
-        .hero-stats    { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.9s both; }
-
-        @keyframes lineGrow {
-          from { width: 0; }
-          to   { width: 48px; }
-        }
-        .gold-line {
-          animation: lineGrow 1s ease-out 1.2s forwards;
-          width: 0;
-        }
+        .btn-dark:hover::before { animation: btnSweep 0.6s ease forwards; }
+        .btn-dark:hover { transform: translateY(-1px); }
 
         /* ── Scroll reveal ── */
         .reveal-card {
@@ -290,26 +473,19 @@ export default function PlatformsPage() {
           transform: translateY(0);
         }
 
-        /* ── Gold pulse on hero glow ── */
-        @keyframes glowPulse {
-          0%, 100% { opacity: 0.04; transform: translate(-50%,-50%) scale(1); }
-          50%      { opacity: 0.07; transform: translate(-50%,-50%) scale(1.05); }
-        }
-        .hero-glow {
-          animation: glowPulse 5s ease-in-out infinite;
-        }
+        /* ── Gold underline grow ── */
+        @keyframes lineGrow { from { width: 0; } to { width: 48px; } }
+        .gold-line { animation: lineGrow 1s ease-out 1s forwards; width: 0; }
       `}</style>
 
       <div className="min-h-screen bg-[#fafafa]">
 
         {/* ─── Hero ─────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden bg-white pt-28 pb-20 md:pt-36 md:pb-28">
-          {/* Moving dot grid */}
-          <div className="absolute inset-0 hero-grid" />
-          {/* Scan line */}
-          <div className="scan-line" />
-          {/* Pulsing gold glow */}
-          <div className="absolute top-1/2 left-1/2 w-[700px] h-[700px] bg-[#c9a84c] rounded-full filter blur-[250px] hero-glow" />
+          {/* Data stream canvas */}
+          <DataStreamCanvas />
+          {/* Subtle glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#c9a84c] rounded-full filter blur-[250px] opacity-[0.04]" />
 
           <div className="relative mx-auto max-w-4xl px-6 text-center z-10">
             <p className="hero-badge inline-flex items-center gap-2 mb-6 rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-[#c9a84c] uppercase tracking-[0.15em]">
@@ -324,13 +500,15 @@ export default function PlatformsPage() {
             <p className="hero-subtitle mx-auto mt-6 max-w-2xl text-base md:text-lg text-slate-500 leading-relaxed">
               MetaTrader 5 — the world&apos;s most powerful trading platform, fully integrated with Keystone FX infrastructure
             </p>
-            <div className="hero-line flex justify-center mt-8">
-              <div className="h-[2px] bg-gradient-to-r from-[#c9a84c] to-[#f5e6a3] gold-line rounded-full" />
+
+            {/* Execution speed bar */}
+            <div className="hero-speed">
+              <SpeedBar />
             </div>
           </div>
 
           {/* Stats */}
-          <div className="hero-stats relative mx-auto max-w-4xl px-6 mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 z-10">
+          <div className="hero-stats relative mx-auto max-w-4xl px-6 mt-14 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 z-10">
             <StatCounter target={1000} suffix="+" label="Trading Instruments" />
             <StatCounter target={8} suffix="ms" label="Average Execution" />
             <StatCounter target={99} suffix=".99%" label="Uptime" />
@@ -339,16 +517,12 @@ export default function PlatformsPage() {
         </section>
 
         {/* ─── Platform Cards ───────────────────────────────────────────── */}
-        <section className="mx-auto max-w-6xl px-6 py-20 md:py-28 space-y-10">
+        <section className="mx-auto max-w-6xl px-6 py-20 md:py-28">
 
           {/* Card 1 — Desktop */}
           <RevealCard glowColor="gold" className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12">
             <div className="flex items-start gap-5 mb-8">
-              <div className="icon-float-1 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c]/10 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center shrink-0">
-                <svg className="w-7 h-7 text-[#c9a84c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
-                </svg>
-              </div>
+              <CandlestickIcon />
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">MetaTrader 5 Desktop</h2>
                 <p className="text-slate-500 mt-1 text-sm">Full-featured professional terminal</p>
@@ -374,31 +548,24 @@ export default function PlatformsPage() {
               ))}
             </div>
             <div className="flex flex-wrap gap-3">
-              <a
-                href={MT5_LINKS.windows}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-shimmer inline-flex items-center gap-2.5 rounded-xl px-7 py-3.5 text-sm font-bold text-slate-900"
-              >
-                <WindowsIcon />
-                Download for Windows
+              <a href={MT5_LINKS.windows} target="_blank" rel="noopener noreferrer"
+                className="btn-shimmer inline-flex items-center gap-2.5 rounded-xl px-7 py-3.5 text-sm font-bold text-slate-900">
+                <WindowsIcon /> Download for Windows
               </a>
-              <a
-                href={MT5_LINKS.mac}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-outline inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700"
-              >
-                <AppleIcon />
-                Download for Mac
+              <a href={MT5_LINKS.mac} target="_blank" rel="noopener noreferrer"
+                className="btn-outline inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700">
+                <AppleIcon /> Download for Mac
               </a>
             </div>
           </RevealCard>
 
+          {/* Connection line 1→2 */}
+          <ConnectionLine />
+
           {/* Card 2 — Web Terminal */}
           <RevealCard glowColor="blue" className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12" style={{ transitionDelay: '0.1s' }}>
             <div className="flex items-start gap-5 mb-8">
-              <div className="icon-float-2 w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 flex items-center justify-center shrink-0">
                 <svg className="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                 </svg>
@@ -427,12 +594,8 @@ export default function PlatformsPage() {
                 </div>
               ))}
             </div>
-            <a
-              href={MT5_LINKS.web}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-shimmer inline-flex items-center gap-2.5 rounded-xl px-7 py-3.5 text-sm font-bold text-slate-900"
-            >
+            <a href={MT5_LINKS.web} target="_blank" rel="noopener noreferrer"
+              className="btn-shimmer inline-flex items-center gap-2.5 rounded-xl px-7 py-3.5 text-sm font-bold text-slate-900">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
               </svg>
@@ -440,14 +603,13 @@ export default function PlatformsPage() {
             </a>
           </RevealCard>
 
+          {/* Connection line 2→3 */}
+          <ConnectionLine />
+
           {/* Card 3 — Mobile */}
           <RevealCard glowColor="emerald" className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12" style={{ transitionDelay: '0.2s' }}>
             <div className="flex items-start gap-5 mb-8">
-              <div className="icon-float-3 w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <svg className="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                </svg>
-              </div>
+              <MobilePriceIcon />
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Mobile Trading App</h2>
                 <p className="text-slate-500 mt-1 text-sm">Markets in your pocket</p>
@@ -473,23 +635,13 @@ export default function PlatformsPage() {
               ))}
             </div>
             <div className="flex flex-wrap gap-3">
-              <a
-                href={MT5_LINKS.ios}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-dark inline-flex items-center gap-2.5 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 hover:shadow-lg"
-              >
-                <AppleIcon />
-                App Store
+              <a href={MT5_LINKS.ios} target="_blank" rel="noopener noreferrer"
+                className="btn-dark inline-flex items-center gap-2.5 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 hover:shadow-lg">
+                <AppleIcon /> App Store
               </a>
-              <a
-                href={MT5_LINKS.android}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-outline inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700"
-              >
-                <AndroidIcon />
-                Google Play
+              <a href={MT5_LINKS.android} target="_blank" rel="noopener noreferrer"
+                className="btn-outline inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700">
+                <AndroidIcon /> Google Play
               </a>
             </div>
           </RevealCard>
@@ -498,13 +650,10 @@ export default function PlatformsPage() {
         {/* ─── Bottom CTA ───────────────────────────────────────────────── */}
         <section className="relative overflow-hidden bg-slate-900 py-24">
           <div className="absolute inset-0 opacity-[0.03]">
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: 'radial-gradient(circle, white 0.5px, transparent 0.5px)',
-                backgroundSize: '20px 20px',
-              }}
-            />
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'radial-gradient(circle, white 0.5px, transparent 0.5px)',
+              backgroundSize: '20px 20px',
+            }} />
           </div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#c9a84c] rounded-full filter blur-[200px] opacity-[0.06]" />
 
@@ -515,10 +664,8 @@ export default function PlatformsPage() {
             <p className="text-slate-400 mb-10 text-base">
               Open your account and access all platforms instantly
             </p>
-            <Link
-              href="/portal/register"
-              className="btn-shimmer inline-flex items-center gap-2.5 rounded-xl px-10 py-4 text-base font-bold text-slate-900"
-            >
+            <Link href="/portal/register"
+              className="btn-shimmer inline-flex items-center gap-2.5 rounded-xl px-10 py-4 text-base font-bold text-slate-900">
               Open Account
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
