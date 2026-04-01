@@ -13,7 +13,7 @@ const MT5_LINKS = {
 
 // ─── Animated counter ────────────────────────────────────────────────────────
 
-function StatCounter({ target, suffix, label, duration = 1800 }: { target: number; suffix: string; label: string; duration?: number }) {
+function StatCounter({ target, suffix, label, duration = 2000 }: { target: number; suffix: string; label: string; duration?: number }) {
   const [value, setValue] = useState(0)
   const started = useRef(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
@@ -32,7 +32,10 @@ function StatCounter({ target, suffix, label, duration = 1800 }: { target: numbe
             function tick(now: number) {
               const elapsed = now - start
               const progress = Math.min(elapsed / duration, 1)
-              const eased = 1 - Math.pow(1 - progress, 3)
+              // Slow start, fast middle, slow end (ease-in-out cubic)
+              const eased = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2
               setValue(Math.round(eased * target))
               if (progress < 1) requestAnimationFrame(tick)
             }
@@ -47,19 +50,30 @@ function StatCounter({ target, suffix, label, duration = 1800 }: { target: numbe
 
   return (
     <div ref={callbackRef} className="text-center">
-      <p className="text-3xl md:text-4xl font-bold text-slate-900 tabular-nums">
-        {value}{suffix}
+      <p className="stat-number text-3xl md:text-4xl font-bold tabular-nums">
+        {value}<span className="stat-suffix">{suffix}</span>
       </p>
-      <p className="text-sm text-slate-500 mt-1">{label}</p>
+      <p className="text-sm text-slate-500 mt-1.5 font-medium">{label}</p>
     </div>
   )
 }
 
 // ─── Scroll reveal wrapper ───────────────────────────────────────────────────
 
-function RevealCard({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+function RevealCard({ children, className, style, glowColor = 'gold' }: {
+  children: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+  glowColor?: 'gold' | 'blue' | 'emerald'
+}) {
   const [visible, setVisible] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
+
+  const glowClass = {
+    gold: 'card-glow-gold',
+    blue: 'card-glow-blue',
+    emerald: 'card-glow-emerald',
+  }[glowColor]
 
   const callbackRef = (node: HTMLDivElement | null) => {
     if (observerRef.current) {
@@ -74,7 +88,7 @@ function RevealCard({ children, className, style }: { children: React.ReactNode;
             observerRef.current?.disconnect()
           }
         },
-        { threshold: 0.15 }
+        { threshold: 0.1 }
       )
       observerRef.current.observe(node)
     }
@@ -83,7 +97,7 @@ function RevealCard({ children, className, style }: { children: React.ReactNode;
   return (
     <div
       ref={callbackRef}
-      className={`reveal-card ${visible ? 'visible' : ''} ${className ?? ''}`}
+      className={`reveal-card ${visible ? 'visible' : ''} ${glowClass} ${className ?? ''}`}
       style={style}
     >
       {children}
@@ -97,54 +111,192 @@ export default function PlatformsPage() {
   return (
     <>
       <style jsx>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(32px); }
-          to   { opacity: 1; transform: translateY(0); }
+        /* ── Animation 1: Moving dot grid ── */
+        @keyframes gridDrift {
+          0%   { background-position: 0 0; }
+          100% { background-position: 48px 48px; }
         }
-        @keyframes float {
+        .hero-grid {
+          background-image: radial-gradient(circle, rgba(201,168,76,0.35) 0.75px, transparent 0.75px);
+          background-size: 24px 24px;
+          animation: gridDrift 8s linear infinite;
+        }
+
+        /* ── Animation 2: Scan line ── */
+        @keyframes scanline {
+          0%   { transform: translateY(-100%); opacity: 0; }
+          5%   { opacity: 0.6; }
+          95%  { opacity: 0.6; }
+          100% { transform: translateY(100vh); opacity: 0; }
+        }
+        .scan-line {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #c9a84c, transparent);
+          animation: scanline 4s ease-in-out infinite;
+          z-index: 1;
+          pointer-events: none;
+        }
+
+        /* ── Animation 3: Card border glow on hover ── */
+        .card-glow-gold {
+          transition: box-shadow 0.4s ease, border-color 0.4s ease, transform 0.4s ease;
+        }
+        .card-glow-gold:hover {
+          border-color: rgba(201,168,76,0.4);
+          box-shadow: 0 0 0 1px rgba(201,168,76,0.15), 0 8px 40px rgba(201,168,76,0.12), 0 2px 8px rgba(0,0,0,0.04);
+          transform: translateY(-2px);
+        }
+        .card-glow-blue {
+          transition: box-shadow 0.4s ease, border-color 0.4s ease, transform 0.4s ease;
+        }
+        .card-glow-blue:hover {
+          border-color: rgba(59,130,246,0.4);
+          box-shadow: 0 0 0 1px rgba(59,130,246,0.15), 0 8px 40px rgba(59,130,246,0.12), 0 2px 8px rgba(0,0,0,0.04);
+          transform: translateY(-2px);
+        }
+        .card-glow-emerald {
+          transition: box-shadow 0.4s ease, border-color 0.4s ease, transform 0.4s ease;
+        }
+        .card-glow-emerald:hover {
+          border-color: rgba(16,185,129,0.4);
+          box-shadow: 0 0 0 1px rgba(16,185,129,0.15), 0 8px 40px rgba(16,185,129,0.12), 0 2px 8px rgba(0,0,0,0.04);
+          transform: translateY(-2px);
+        }
+
+        /* ── Animation 4: Floating icons ── */
+        @keyframes iconFloat {
           0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-6px); }
+          50%      { transform: translateY(-8px); }
         }
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
+        .icon-float-1 { animation: iconFloat 3s ease-in-out infinite; }
+        .icon-float-2 { animation: iconFloat 3s ease-in-out 0.8s infinite; }
+        .icon-float-3 { animation: iconFloat 3s ease-in-out 1.6s infinite; }
+
+        /* ── Animation 5: Counter numbers ── */
+        .stat-number {
+          color: #c9a84c;
         }
+        .stat-suffix {
+          color: #b8963f;
+        }
+
+        /* ── Animation 6: Button shimmer ── */
+        .btn-shimmer {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(135deg, #c9a84c 0%, #dbb850 50%, #c9a84c 100%);
+          transition: all 0.3s ease;
+        }
+        .btn-shimmer::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+          transition: none;
+        }
+        .btn-shimmer:hover::before {
+          animation: btnSweep 0.6s ease forwards;
+        }
+        .btn-shimmer:hover {
+          box-shadow: 0 8px 32px rgba(201,168,76,0.4);
+          transform: translateY(-1px);
+        }
+        @keyframes btnSweep {
+          0%   { left: -100%; }
+          100% { left: 100%; }
+        }
+
+        .btn-outline {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+        .btn-outline::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(201,168,76,0.08), transparent);
+          transition: none;
+        }
+        .btn-outline:hover::before {
+          animation: btnSweep 0.6s ease forwards;
+        }
+        .btn-outline:hover {
+          border-color: rgba(201,168,76,0.5);
+          transform: translateY(-1px);
+        }
+
+        .btn-dark {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+        .btn-dark::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+          transition: none;
+        }
+        .btn-dark:hover::before {
+          animation: btnSweep 0.6s ease forwards;
+        }
+        .btn-dark:hover {
+          transform: translateY(-1px);
+        }
+
+        /* ── Animation 7: Page entry stagger ── */
+        @keyframes heroEntry {
+          from { opacity: 0; transform: translateY(40px); filter: blur(8px); }
+          to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .hero-badge    { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
+        .hero-headline { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
+        .hero-subtitle { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.5s both; }
+        .hero-line     { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.7s both; }
+        .hero-stats    { animation: heroEntry 0.8s cubic-bezier(0.16,1,0.3,1) 0.9s both; }
+
         @keyframes lineGrow {
           from { width: 0; }
           to   { width: 48px; }
         }
-        @keyframes gridFade {
-          0%, 100% { opacity: 0.03; }
-          50%      { opacity: 0.06; }
+        .gold-line {
+          animation: lineGrow 1s ease-out 1.2s forwards;
+          width: 0;
         }
+
+        /* ── Scroll reveal ── */
         .reveal-card {
           opacity: 0;
-          transform: translateY(32px);
-          transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+          transform: translateY(40px);
+          transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .reveal-card.visible {
           opacity: 1;
           transform: translateY(0);
         }
-        .icon-float {
-          animation: float 4s ease-in-out infinite;
+
+        /* ── Gold pulse on hero glow ── */
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.04; transform: translate(-50%,-50%) scale(1); }
+          50%      { opacity: 0.07; transform: translate(-50%,-50%) scale(1.05); }
         }
-        .btn-shimmer {
-          background-size: 200% auto;
-          background-image: linear-gradient(90deg, #c9a84c 0%, #f5e6a3 50%, #c9a84c 100%);
-          transition: all 0.3s ease;
-        }
-        .btn-shimmer:hover {
-          animation: shimmer 1.5s linear infinite;
-          box-shadow: 0 8px 32px rgba(201, 168, 76, 0.35);
-        }
-        .gold-line {
-          animation: lineGrow 0.8s ease-out forwards;
-          animation-delay: 0.3s;
-          width: 0;
-        }
-        .grid-bg {
-          animation: gridFade 6s ease-in-out infinite;
+        .hero-glow {
+          animation: glowPulse 5s ease-in-out infinite;
         }
       `}</style>
 
@@ -152,41 +304,33 @@ export default function PlatformsPage() {
 
         {/* ─── Hero ─────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden bg-white pt-28 pb-20 md:pt-36 md:pb-28">
-          {/* Animated grid background */}
-          <div
-            className="absolute inset-0 grid-bg"
-            style={{
-              backgroundImage: 'radial-gradient(circle, #c9a84c 0.5px, transparent 0.5px)',
-              backgroundSize: '24px 24px',
-            }}
-          />
-          {/* Subtle glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-[#c9a84c] rounded-full filter blur-[250px] opacity-[0.04]" />
+          {/* Moving dot grid */}
+          <div className="absolute inset-0 hero-grid" />
+          {/* Scan line */}
+          <div className="scan-line" />
+          {/* Pulsing gold glow */}
+          <div className="absolute top-1/2 left-1/2 w-[700px] h-[700px] bg-[#c9a84c] rounded-full filter blur-[250px] hero-glow" />
 
-          <div className="relative mx-auto max-w-4xl px-6 text-center" style={{ animation: 'fadeInUp 0.8s ease-out both' }}>
-            <p className="inline-flex items-center gap-2 mb-6 rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-[#c9a84c] uppercase tracking-[0.15em]">
+          <div className="relative mx-auto max-w-4xl px-6 text-center z-10">
+            <p className="hero-badge inline-flex items-center gap-2 mb-6 rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-[#c9a84c] uppercase tracking-[0.15em]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
               MetaTrader 5
             </p>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 leading-[1.08]">
+            <h1 className="hero-headline text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 leading-[1.08]">
               Trade on Any Device.
               <br />
               <span className="text-[#c9a84c]">Any Time.</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-base md:text-lg text-slate-500 leading-relaxed">
+            <p className="hero-subtitle mx-auto mt-6 max-w-2xl text-base md:text-lg text-slate-500 leading-relaxed">
               MetaTrader 5 — the world&apos;s most powerful trading platform, fully integrated with Keystone FX infrastructure
             </p>
-            {/* Gold underline */}
-            <div className="flex justify-center mt-8">
+            <div className="hero-line flex justify-center mt-8">
               <div className="h-[2px] bg-gradient-to-r from-[#c9a84c] to-[#f5e6a3] gold-line rounded-full" />
             </div>
           </div>
 
           {/* Stats */}
-          <div
-            className="relative mx-auto max-w-4xl px-6 mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4"
-            style={{ animation: 'fadeInUp 0.8s ease-out 0.3s both' }}
-          >
+          <div className="hero-stats relative mx-auto max-w-4xl px-6 mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 z-10">
             <StatCounter target={1000} suffix="+" label="Trading Instruments" />
             <StatCounter target={8} suffix="ms" label="Average Execution" />
             <StatCounter target={99} suffix=".99%" label="Uptime" />
@@ -198,9 +342,9 @@ export default function PlatformsPage() {
         <section className="mx-auto max-w-6xl px-6 py-20 md:py-28 space-y-10">
 
           {/* Card 1 — Desktop */}
-          <RevealCard className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12 hover:shadow-[0_8px_40px_rgba(0,0,0,0.06)] transition-shadow duration-500">
+          <RevealCard glowColor="gold" className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12">
             <div className="flex items-start gap-5 mb-8">
-              <div className="icon-float w-14 h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c]/10 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center shrink-0">
+              <div className="icon-float-1 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c]/10 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center shrink-0">
                 <svg className="w-7 h-7 text-[#c9a84c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
                 </svg>
@@ -243,7 +387,7 @@ export default function PlatformsPage() {
                 href={MT5_LINKS.mac}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 hover:border-[#c9a84c]/40 hover:text-slate-900 transition-all"
+                className="btn-outline inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700"
               >
                 <AppleIcon />
                 Download for Mac
@@ -252,9 +396,9 @@ export default function PlatformsPage() {
           </RevealCard>
 
           {/* Card 2 — Web Terminal */}
-          <RevealCard className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12 hover:shadow-[0_8px_40px_rgba(0,0,0,0.06)] transition-shadow duration-500" style={{ transitionDelay: '0.1s' }}>
+          <RevealCard glowColor="blue" className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12" style={{ transitionDelay: '0.1s' }}>
             <div className="flex items-start gap-5 mb-8">
-              <div className="icon-float w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 flex items-center justify-center shrink-0" style={{ animationDelay: '1s' }}>
+              <div className="icon-float-2 w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 flex items-center justify-center shrink-0">
                 <svg className="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                 </svg>
@@ -297,9 +441,9 @@ export default function PlatformsPage() {
           </RevealCard>
 
           {/* Card 3 — Mobile */}
-          <RevealCard className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12 hover:shadow-[0_8px_40px_rgba(0,0,0,0.06)] transition-shadow duration-500" style={{ transitionDelay: '0.2s' }}>
+          <RevealCard glowColor="emerald" className="rounded-3xl bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8 md:p-12" style={{ transitionDelay: '0.2s' }}>
             <div className="flex items-start gap-5 mb-8">
-              <div className="icon-float w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center shrink-0" style={{ animationDelay: '2s' }}>
+              <div className="icon-float-3 w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center shrink-0">
                 <svg className="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
                 </svg>
@@ -333,7 +477,7 @@ export default function PlatformsPage() {
                 href={MT5_LINKS.ios}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 transition-all hover:shadow-lg"
+                className="btn-dark inline-flex items-center gap-2.5 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 hover:shadow-lg"
               >
                 <AppleIcon />
                 App Store
@@ -342,7 +486,7 @@ export default function PlatformsPage() {
                 href={MT5_LINKS.android}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 hover:border-slate-300 hover:text-slate-900 transition-all"
+                className="btn-outline inline-flex items-center gap-2.5 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700"
               >
                 <AndroidIcon />
                 Google Play
