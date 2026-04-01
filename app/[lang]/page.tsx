@@ -3,7 +3,7 @@ import InvestorSection from "@/components/InvestorSection";
 import PartnershipHeroStrip from "@/components/partnership/PartnershipHeroStrip";
 import InfrastructureAllianceSection from "@/components/partnership/InfrastructureAllianceSection";
 import { MT5Section } from "@/components/MT5Section";
-import { HeroSection } from "@/components/HeroSection";
+import HeroSection from "@/components/HeroSection";
 
 export default async function Home({
   params,

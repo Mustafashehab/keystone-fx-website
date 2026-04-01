@@ -1,222 +1,504 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
+import Link from 'next/link';
+import { useEffect, useId, useMemo, useRef } from 'react';
 
-const NODES = ['Order', 'Validate', 'Route', 'Liquidity', 'Confirm']
-const MICRO_LABELS = ['FIX', 'API', 'LP', 'Route']
+type HeroSectionProps = {
+  lang: string;
+};
 
-export function HeroSection({ lang }: { lang: string }) {
+type NodeDef = {
+  key: string;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+export default function HeroSection({ lang }: HeroSectionProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const resizeTimeoutRef = useRef<number | null>(null);
+  const sectionId = useId().replace(/:/g, '');
+  const isEnglish = lang === 'en';
+
+  const hrefs = useMemo(
+    () => ({
+      execution: isEnglish ? '/en/execution' : `/${lang}/execution`,
+      platforms: isEnglish ? '/en/platforms' : `/${lang}/platforms`,
+    }),
+    [isEnglish, lang]
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const mediaQuery =
+      typeof window !== 'undefined'
+        ? window.matchMedia('(prefers-reduced-motion: reduce)')
+        : null;
+
+    let reducedMotion = mediaQuery?.matches ?? false;
+
+    const handleMotionChange = (event: MediaQueryListEvent) => {
+      reducedMotion = event.matches;
+    };
+
+    if (mediaQuery) {
+      if (typeof mediaQuery.addEventListener === 'function') {
+        mediaQuery.addEventListener('change', handleMotionChange);
+      } else if (typeof mediaQuery.addListener === 'function') {
+        mediaQuery.addListener(handleMotionChange);
+      }
+    }
+
+    const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+
+    const nodes: NodeDef[] = [
+      { key: 'order', label: 'Order', x: 0.08, y: 0.28, w: 0.17, h: 0.16 },
+      { key: 'validate', label: 'Validate', x: 0.29, y: 0.54, w: 0.19, h: 0.16 },
+      { key: 'route', label: 'Route', x: 0.51, y: 0.24, w: 0.16, h: 0.16 },
+      { key: 'liquidity', label: 'Liquidity', x: 0.69, y: 0.54, w: 0.2, h: 0.16 },
+      { key: 'confirm', label: 'Confirm', x: 0.83, y: 0.28, w: 0.14, h: 0.16 },
+    ];
+
+    const badges = [
+      { label: 'FIX', x: 0.21, y: 0.22 },
+      { label: 'API', x: 0.41, y: 0.73 },
+      { label: 'Route', x: 0.62, y: 0.13 },
+      { label: 'LP', x: 0.78, y: 0.76 },
+    ];
+
+    const resizeCanvas = () => {
+      const parent = canvas.parentElement;
+      if (!parent) return;
+
+      const rect = parent.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const roundedRect = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number
+    ) => {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    };
+
+    const getRect = (node: NodeDef, width: number, height: number) => ({
+      x: node.x * width,
+      y: node.y * height,
+      w: node.w * width,
+      h: node.h * height,
+    });
+
+    const getCenter = (node: NodeDef, width: number, height: number) => {
+      const rect = getRect(node, width, height);
+      return {
+        x: rect.x + rect.w / 2,
+        y: rect.y + rect.h / 2,
+      };
+    };
+
+    const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 1;
+
+      const gap = Math.max(26, Math.min(44, width / 14));
+      for (let x = 0; x <= width; x += gap) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y <= height; y += gap) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+
+    const drawConnection = (
+      ctx: CanvasRenderingContext2D,
+      from: { x: number; y: number },
+      to: { x: number; y: number },
+      progress: number
+    ) => {
+      const cp1 = { x: from.x + (to.x - from.x) * 0.4, y: from.y };
+      const cp2 = { x: from.x + (to.x - from.x) * 0.6, y: to.y };
+
+      const gradient = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+      gradient.addColorStop(0, 'rgba(201,168,76,0.18)');
+      gradient.addColorStop(0.5, 'rgba(245,158,11,0.38)');
+      gradient.addColorStop(1, 'rgba(201,168,76,0.18)');
+
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = gradient;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, to.x, to.y);
+      ctx.stroke();
+
+      const dotCount = reducedMotion ? 1 : 2;
+      for (let i = 0; i < dotCount; i += 1) {
+        const t = reducedMotion ? 0.5 : (progress + i * 0.42) % 1;
+        const point = cubicBezierPoint(from, cp1, cp2, to, t);
+        const glow = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, 12);
+        glow.addColorStop(0, 'rgba(245,158,11,0.95)');
+        glow.addColorStop(0.4, 'rgba(245,158,11,0.4)');
+        glow.addColorStop(1, 'rgba(245,158,11,0)');
+
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255,244,214,0.95)';
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    };
+
+    const drawNode = (
+      ctx: CanvasRenderingContext2D,
+      node: NodeDef,
+      width: number,
+      height: number,
+      time: number,
+      index: number
+    ) => {
+      const rect = getRect(node, width, height);
+      const pulse = reducedMotion ? 0.5 : (Math.sin(time * 0.001 + index * 0.9) + 1) / 2;
+      const glowAlpha = 0.08 + pulse * 0.1;
+
+      ctx.save();
+
+      const outerGlow = ctx.createRadialGradient(
+        rect.x + rect.w / 2,
+        rect.y + rect.h / 2,
+        6,
+        rect.x + rect.w / 2,
+        rect.y + rect.h / 2,
+        rect.w * 0.7
+      );
+      outerGlow.addColorStop(0, `rgba(245,158,11,${glowAlpha})`);
+      outerGlow.addColorStop(1, 'rgba(245,158,11,0)');
+      ctx.fillStyle = outerGlow;
+      ctx.beginPath();
+      ctx.ellipse(
+        rect.x + rect.w / 2,
+        rect.y + rect.h / 2,
+        rect.w * 0.72,
+        rect.h * 0.95,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      const fillGradient = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
+      fillGradient.addColorStop(0, 'rgba(255,255,255,0.035)');
+      fillGradient.addColorStop(1, 'rgba(255,255,255,0.015)');
+
+      roundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 16);
+      ctx.fillStyle = fillGradient;
+      ctx.fill();
+
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(201,168,76,${0.65 + pulse * 0.2})`;
+      ctx.shadowColor = 'rgba(245,158,11,0.25)';
+      ctx.shadowBlur = 14;
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = `600 ${Math.max(13, rect.h * 0.22)}px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(node.label, rect.x + rect.w / 2, rect.y + rect.h / 2);
+
+      ctx.restore();
+    };
+
+    const drawBadge = (
+      ctx: CanvasRenderingContext2D,
+      label: string,
+      x: number,
+      y: number,
+      width: number,
+      height: number
+    ) => {
+      const px = x * width;
+      const py = y * height;
+      const padX = 10;
+      const padY = 6;
+
+      ctx.save();
+      ctx.font = '500 11px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      const textWidth = ctx.measureText(label).width;
+      const w = textWidth + padX * 2;
+      const h = 24;
+
+      roundedRect(ctx, px - w / 2, py - h / 2, w, h, 12);
+      ctx.fillStyle = 'rgba(15,15,15,0.9)';
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(201,168,76,0.34)';
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,247,230,0.86)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, px, py + 0.5);
+
+      ctx.restore();
+    };
+
+    const drawAmbient = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number) => {
+      ctx.save();
+
+      const leftGlow = ctx.createRadialGradient(
+        width * 0.18,
+        height * 0.22,
+        0,
+        width * 0.18,
+        height * 0.22,
+        width * 0.35
+      );
+      leftGlow.addColorStop(0, `rgba(245,158,11,${reducedMotion ? 0.08 : 0.1 + Math.sin(time * 0.0007) * 0.02})`);
+      leftGlow.addColorStop(1, 'rgba(245,158,11,0)');
+      ctx.fillStyle = leftGlow;
+      ctx.fillRect(0, 0, width, height);
+
+      const rightGlow = ctx.createRadialGradient(
+        width * 0.82,
+        height * 0.72,
+        0,
+        width * 0.82,
+        height * 0.72,
+        width * 0.36
+      );
+      rightGlow.addColorStop(
+        0,
+        `rgba(201,168,76,${reducedMotion ? 0.06 : 0.08 + Math.cos(time * 0.0006) * 0.015})`
+      );
+      rightGlow.addColorStop(1, 'rgba(201,168,76,0)');
+      ctx.fillStyle = rightGlow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.restore();
+    };
+
+    const render = (time: number) => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      context.clearRect(0, 0, width, height);
+
+      const bg = context.createLinearGradient(0, 0, width, height);
+      bg.addColorStop(0, 'rgba(10,10,10,1)');
+      bg.addColorStop(1, 'rgba(14,14,14,1)');
+      context.fillStyle = bg;
+      context.fillRect(0, 0, width, height);
+
+      drawGrid(context, width, height);
+      drawAmbient(context, width, height, time);
+
+      const centers = nodes.map((node) => getCenter(node, width, height));
+      for (let i = 0; i < centers.length - 1; i += 1) {
+        const from = centers[i];
+        const to = centers[i + 1];
+        const progress = reducedMotion ? 0.5 : (time * 0.00015 + i * 0.18) % 1;
+        drawConnection(context, from, to, progress);
+      }
+
+      badges.forEach((badge) => drawBadge(context, badge.label, badge.x, badge.y, width, height));
+      nodes.forEach((node, index) => drawNode(context, node, width, height, time, index));
+
+      rafRef.current = window.requestAnimationFrame(render);
+    };
+
+    const handleResize = () => {
+      if (resizeTimeoutRef.current) {
+        window.clearTimeout(resizeTimeoutRef.current);
+      }
+      resizeTimeoutRef.current = window.setTimeout(() => {
+        resizeCanvas();
+      }, 50);
+    };
+
+    resizeCanvas();
+    rafRef.current = window.requestAnimationFrame(render);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
+      if (resizeTimeoutRef.current !== null) {
+        window.clearTimeout(resizeTimeoutRef.current);
+      }
+      window.removeEventListener('resize', handleResize);
+
+      if (mediaQuery) {
+        if (typeof mediaQuery.removeEventListener === 'function') {
+          mediaQuery.removeEventListener('change', handleMotionChange);
+        } else if (typeof mediaQuery.removeListener === 'function') {
+          mediaQuery.removeListener(handleMotionChange);
+        }
+      }
+    };
+  }, []);
+
   return (
-    <>
-      <style jsx>{`
-        /* ── Node pulse ── */
-        @keyframes nodePulse {
-          0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(201,168,76,0); }
-          50%      { transform: scale(1.05); box-shadow: 0 0 12px 2px rgba(201,168,76,0.15); }
-        }
-        .node-box {
-          animation: nodePulse 3s ease-in-out infinite;
-        }
-        .node-box:nth-child(2) .node-inner { animation-delay: 0.4s; }
-        .node-box:nth-child(3) .node-inner { animation-delay: 0.8s; }
-        .node-box:nth-child(4) .node-inner { animation-delay: 1.2s; }
-        .node-box:nth-child(5) .node-inner { animation-delay: 1.6s; }
-
-        /* ── Traveling dot along connection line ── */
-        @keyframes travelDot {
-          0%   { left: 0; opacity: 0; }
-          10%  { opacity: 1; }
-          90%  { opacity: 1; }
-          100% { left: 100%; opacity: 0; }
-        }
-        .connection-line {
-          position: relative;
-        }
-        .connection-line::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 0;
-          width: 6px;
-          height: 6px;
-          margin-top: -3px;
-          border-radius: 50%;
-          background: #c9a84c;
-          box-shadow: 0 0 8px 2px rgba(201,168,76,0.5);
-          animation: travelDot 2s ease-in-out infinite;
-        }
-        .conn-delay-1::after { animation-delay: 0s; }
-        .conn-delay-2::after { animation-delay: 0.5s; }
-        .conn-delay-3::after { animation-delay: 1.0s; }
-        .conn-delay-4::after { animation-delay: 1.5s; }
-
-        /* ── Hero entry ── */
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .hero-fade-1 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
-        .hero-fade-2 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.25s both; }
-        .hero-fade-3 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both; }
-        .hero-fade-4 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.55s both; }
-        .hero-fade-5 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.7s both; }
-        .hero-fade-6 { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.5s both; }
-
-        /* ── Micro label float ── */
-        @keyframes microFloat {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-3px); }
-        }
-        .micro-label {
-          animation: microFloat 4s ease-in-out infinite;
-        }
-      `}</style>
-
-      <section className="relative overflow-hidden bg-[#0c0f14] min-h-screen flex items-center">
-        {/* Subtle background grid */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: 'radial-gradient(circle, #c9a84c 0.5px, transparent 0.5px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
-
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-24 md:py-32 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
-
-            {/* ── Left Column: Copy ── */}
-            <div>
-              {/* Eyebrow */}
-              <p className="hero-fade-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#c9a84c] mb-5">
-                Institutional Trading Infrastructure
-              </p>
-
-              {/* Headline */}
-              <h1 className="hero-fade-2 text-4xl md:text-5xl lg:text-[3.4rem] font-bold text-white leading-[1.1] tracking-tight mb-6">
-                Execution Infrastructure for Serious Market Access
-              </h1>
-
-              {/* Subheadline */}
-              <p className="hero-fade-3 text-base md:text-lg text-white/60 leading-relaxed max-w-xl mb-10">
-                Low-latency routing, resilient platform connectivity, and professional execution architecture built for modern trading environments.
-              </p>
-
-              {/* CTAs */}
-              <div className="hero-fade-4 flex flex-wrap gap-4 mb-12">
-                <Link
-                  href={`/${lang}/execution`}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#c9a84c] px-7 py-3.5 text-sm font-bold text-[#0c0f14] hover:bg-[#d4b65e] transition-all hover:shadow-lg hover:shadow-[#c9a84c]/20"
-                >
-                  Explore Execution
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                </Link>
-                <Link
-                  href={`/${lang}/platforms`}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-7 py-3.5 text-sm font-semibold text-white/80 hover:border-[#c9a84c]/50 hover:text-white transition-all"
-                >
-                  View Platforms
-                </Link>
-              </div>
-
-              {/* Credibility bullets */}
-              <div className="hero-fade-5 flex flex-wrap gap-x-8 gap-y-3">
-                {['Low-Latency Routing', 'Resilient Connectivity', 'Infrastructure-Led Architecture'].map((item) => (
-                  <div key={item} className="flex items-center gap-2.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
-                    <span className="text-xs text-white/50 font-medium tracking-wide">{item}</span>
-                  </div>
-                ))}
-              </div>
+    <section className="relative overflow-hidden bg-[#0a0a0a] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(201,168,76,0.07),transparent_32%)]" />
+      <div className="relative mx-auto flex min-h-[100svh] max-w-7xl items-center px-6 py-20 sm:px-8 lg:px-10">
+        <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
+          <div className="max-w-2xl">
+            <div className="mb-5 inline-flex items-center rounded-full border border-[#c9a84c]/30 bg-white/[0.03] px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-[#f2d187]">
+              Institutional Trading Infrastructure
             </div>
 
-            {/* ── Right Column: Execution Flow Visual ── */}
-            <div className="hero-fade-6">
-              <div
-                className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6 md:p-8 overflow-hidden"
-                style={{
-                  backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
-                  backgroundSize: '20px 20px',
-                }}
+            <h1 className="max-w-4xl text-4xl font-semibold leading-tight tracking-[-0.03em] text-white sm:text-5xl lg:text-6xl">
+              Execution Infrastructure for Serious Market Access
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-white/70 sm:text-lg">
+              Low-latency routing, resilient platform connectivity, and professional execution architecture
+              built for modern trading environments.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={hrefs.execution}
+                className="inline-flex items-center justify-center rounded-2xl border border-[#f59e0b]/70 bg-[#f59e0b] px-6 py-3.5 text-sm font-semibold text-black transition duration-200 hover:bg-[#ffb01f] focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/60 focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
               >
-                {/* Flow label */}
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-2 h-2 rounded-full bg-[#c9a84c] animate-pulse" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-white/30">Execution Pipeline</span>
-                </div>
+                Explore Execution
+              </Link>
+              <Link
+                href={hrefs.platforms}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/12 bg-white/[0.03] px-6 py-3.5 text-sm font-semibold text-white transition duration-200 hover:border-[#c9a84c]/50 hover:bg-white/[0.05] focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
+              >
+                View Platforms
+              </Link>
+            </div>
 
-                {/* Desktop: horizontal flow */}
-                <div className="hidden md:block">
-                  <div className="flex items-center justify-between">
-                    {NODES.map((node, i) => (
-                      <div key={node} className="flex items-center">
-                        {/* Node */}
-                        <div
-                          className="node-box"
-                          style={{ animationDelay: `${i * 0.4}s` }}
-                        >
-                          <div className="node-inner px-4 py-2.5 rounded-lg border border-[#c9a84c]/25 bg-[#c9a84c]/[0.06] text-center">
-                            <span className="text-[11px] font-semibold text-[#c9a84c] tracking-wide">{node}</span>
-                          </div>
-                        </div>
-                        {/* Connection line + micro label */}
-                        {i < NODES.length - 1 && (
-                          <div className="flex flex-col items-center mx-1.5">
-                            <span
-                              className="micro-label text-[8px] font-mono text-white/20 mb-1"
-                              style={{ animationDelay: `${i * 0.6}s` }}
-                            >
-                              {MICRO_LABELS[i]}
-                            </span>
-                            <div className={`connection-line conn-delay-${i + 1} w-8 lg:w-12 h-[1px] bg-white/10`} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {[
+                'Low-Latency Routing',
+                'Resilient Connectivity',
+                'Infrastructure-Led Architecture',
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/80 backdrop-blur-sm"
+                >
+                  <span className="block h-1.5 w-1.5 rounded-full bg-[#f59e0b]" />
+                  <span className="mt-2 block leading-6">{item}</span>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                {/* Mobile: vertical flow */}
-                <div className="md:hidden space-y-3">
-                  {NODES.map((node, i) => (
-                    <div key={node} className="flex items-center gap-3">
-                      <div
-                        className="node-box shrink-0"
-                        style={{ animationDelay: `${i * 0.4}s` }}
-                      >
-                        <div className="node-inner px-4 py-2 rounded-lg border border-[#c9a84c]/25 bg-[#c9a84c]/[0.06]">
-                          <span className="text-[11px] font-semibold text-[#c9a84c] tracking-wide">{node}</span>
-                        </div>
-                      </div>
-                      {i < NODES.length - 1 && (
-                        <span className="text-[8px] font-mono text-white/20">{MICRO_LABELS[i]}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Bottom stats row */}
-                <div className="mt-8 pt-5 border-t border-white/[0.05] grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-lg font-bold text-[#c9a84c] font-mono">8ms</p>
-                    <p className="text-[10px] text-white/30 mt-0.5">Avg Latency</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-[#c9a84c] font-mono">99.99%</p>
-                    <p className="text-[10px] text-white/30 mt-0.5">Uptime</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-[#c9a84c] font-mono">120K/s</p>
-                    <p className="text-[10px] text-white/30 mt-0.5">Throughput</p>
-                  </div>
-                </div>
+          <div className="relative">
+            <div className="relative min-h-[300px] overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_80px_rgba(0,0,0,0.35)] sm:min-h-[360px] lg:min-h-[460px]">
+              <div className="pointer-events-none absolute inset-0 rounded-[24px] border border-[#c9a84c]/10" />
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 h-full w-full"
+                aria-hidden="true"
+              />
+              <div className="pointer-events-none absolute inset-x-4 top-4 flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-white/35 sm:inset-x-6 sm:top-5">
+                <span>Execution Layer</span>
+                <span>Routing Sequence</span>
+              </div>
+              <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-white/30 sm:inset-x-6 sm:bottom-5">
+                <span>Connectivity</span>
+                <span>Confirmation</span>
               </div>
             </div>
           </div>
         </div>
-      </section>
-    </>
-  )
+      </div>
+
+      <style jsx>{`
+        @media (prefers-reduced-motion: reduce) {
+          .reduced-motion-safe {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+
+        section :global(a) {
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        section :global(*) {
+          box-sizing: border-box;
+        }
+
+        #hero-${sectionId} {
+          position: relative;
+        }
+      `}</style>
+    </section>
+  );
+}
+
+function cubicBezierPoint(
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+  t: number
+) {
+  const mt = 1 - t;
+  const mt2 = mt * mt;
+  const t2 = t * t;
+
+  const x =
+    p0.x * mt2 * mt +
+    3 * p1.x * mt2 * t +
+    3 * p2.x * mt * t2 +
+    p3.x * t2 * t;
+
+  const y =
+    p0.y * mt2 * mt +
+    3 * p1.y * mt2 * t +
+    3 * p2.y * mt * t2 +
+    p3.y * t2 * t;
+
+  return { x, y };
 }
