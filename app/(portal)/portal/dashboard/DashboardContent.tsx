@@ -141,7 +141,7 @@ export function DashboardContent(props: Props) {
             <InfoRow label={d.accountType} value={d.accountTypeLabel[accountType as keyof typeof d.accountTypeLabel] ?? accountType} />
             <InfoRow
               label={d.kycStatus}
-              value={<StatusBadge type="kyc" status={kycStatus} />}
+              value={<StatusBadge type="kyc" status={kycStatus as "not_started" | "pending" | "under_review" | "approved" | "rejected"} />}
             />
             <InfoRow label={d.memberSince} value={formatDate(memberSince)} />
           </div>
