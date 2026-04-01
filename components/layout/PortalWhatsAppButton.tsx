@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { usePortalI18n } from '@/lib/portal-i18n'
 
 export function PortalWhatsAppButton() {
-  const [isVisible] = useState(true)
+  const { t } = usePortalI18n()
+  const isRTL = t.dir === 'rtl'
 
   function handleClick() {
     const phoneNumber = '447511648370'
@@ -15,8 +16,8 @@ export function PortalWhatsAppButton() {
   return (
     <button
       onClick={handleClick}
-      className={`fixed bottom-6 right-6 z-50 group transition-all duration-300 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+      className={`fixed bottom-6 z-50 group transition-all duration-300 opacity-100 translate-y-0 ${
+        isRTL ? 'left-6' : 'right-6'
       }`}
       aria-label="Contact support on WhatsApp"
     >
@@ -28,11 +29,21 @@ export function PortalWhatsAppButton() {
         </svg>
       </div>
 
-      <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+      <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap ${
+        isRTL ? 'left-full ml-3' : 'right-full mr-3'
+      }`}>
         <div className="bg-slate-900 text-white px-3 py-2 rounded-lg shadow-xl text-xs font-semibold">
           Need help? Chat with us
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
-            <div className="w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-slate-900" />
+          <div className={`absolute top-1/2 -translate-y-1/2 ${
+            isRTL
+              ? 'left-0 -translate-x-full'
+              : 'right-0 translate-x-full'
+          }`}>
+            <div className={`w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent ${
+              isRTL
+                ? 'border-r-8 border-r-slate-900'
+                : 'border-l-8 border-l-slate-900'
+            }`} />
           </div>
         </div>
       </div>

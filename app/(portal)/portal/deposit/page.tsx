@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/client'
 import { PortalHeader } from '@/components/layout/PortalHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Alert } from '@/components/ui/Alert'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
 import { usePortalI18n } from '@/lib/portal-i18n'
@@ -108,7 +107,6 @@ export default function DepositPage() {
   const [loading,      setLoading]      = useState(true)
   const [creating,     setCreating]     = useState(false)
   const [checking,     setChecking]     = useState(false)
-  const [kycApproved,  setKycApproved]  = useState(false)
   const [copied,       setCopied]       = useState(false)
   const [clientId,     setClientId]     = useState<string | null>(null)
   const [sweepModal,   setSweepModal]   = useState(false)
@@ -132,12 +130,11 @@ export default function DepositPage() {
 
     const { data: profile } = await supabase
       .from('client_profiles')
-      .select('id, kyc_status')
+      .select('id')
       .eq('user_id', user.id)
       .single()
 
     if (!profile) { setLoading(false); return }
-    setKycApproved(profile.kyc_status === 'approved')
     setClientId(profile.id)
 
     const { data: walletData } = await supabase
@@ -254,13 +251,7 @@ export default function DepositPage() {
       <PortalHeader title={t.deposit.title} subtitle={t.deposit.subtitle} />
       <div className="p-6 space-y-5 max-w-2xl">
 
-        {!kycApproved && (
-          <Alert variant="warning" title={t.deposit.kycRequired}>
-            {t.deposit.kycRequiredDesc}
-          </Alert>
-        )}
-
-        {kycApproved && !wallet && (
+        {!wallet && (
           <Card>
             <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-2">{t.deposit.generateWallet}</h2>
             <p className="text-sm text-[var(--kfx-text-muted)] mb-4">
@@ -272,7 +263,7 @@ export default function DepositPage() {
           </Card>
         )}
 
-        {kycApproved && wallet && (
+        {wallet && (
           <>
             <Card>
               <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">{t.deposit.depositAddress}</h2>

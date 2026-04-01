@@ -63,20 +63,6 @@ export default async function PortalDashboardPage() {
         subtitle="Monitor your onboarding status, account profile, and recent support activity."
       />
 
-      {!kycVerified && (
-        <div className="kfx-card p-4 flex items-center justify-between gap-4 flex-wrap border-[var(--kfx-accent)]/20 bg-[var(--kfx-accent-muted)]">
-          <div className="text-sm">
-            <span className="font-medium text-[var(--kfx-text)]">KYC Required</span>
-            <p className="text-[var(--kfx-text-muted)] mt-0.5">
-              Complete verification to unlock full account functionality.
-            </p>
-          </div>
-          <Link href="/portal/kyc" className="kfx-btn-primary text-xs !px-3 !py-2 shrink-0">
-            Complete KYC
-          </Link>
-        </div>
-      )}
-
       {!onboardingComplete && (
         <OnboardingBanner step={profile.onboarding_step} />
       )}
@@ -112,18 +98,6 @@ export default async function PortalDashboardPage() {
             Onboarding Progress
           </h2>
           <div className="space-y-3">
-            <ChecklistItem
-              label="KYC Verification"
-              description="Complete your identity verification"
-              href="/portal/kyc"
-              status={
-                kyc?.status === 'approved'
-                  ? 'complete'
-                  : kyc
-                  ? 'in_progress'
-                  : 'pending'
-              }
-            />
             <ChecklistItem
               label="Document Upload"
               description="Upload identity and address documents"

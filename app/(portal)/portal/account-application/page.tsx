@@ -177,7 +177,7 @@ export default function AccountApplicationPage() {
     application?.status === 'under_review' ||
     application?.status === 'submitted'
 
-  const prereqsMet = (profile?.onboarding_step ?? 0) >= 2
+  const prereqsMet = true
 
   return (
     <div>
