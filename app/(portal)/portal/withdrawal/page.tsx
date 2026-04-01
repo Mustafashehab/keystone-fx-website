@@ -69,7 +69,6 @@ export default function WithdrawalPage() {
 
   const [profileId,        setProfileId]        = useState<string | null>(null)
   const [profileName,      setProfileName]      = useState('')
-  const [kycApproved,      setKycApproved]      = useState(false)
   const [registeredWallet, setRegisteredWallet] = useState<string | null>(null)
   const [requests,         setRequests]         = useState<WithdrawalRequest[]>([])
   const [loading,          setLoading]          = useState(true)
@@ -97,14 +96,13 @@ export default function WithdrawalPage() {
 
       const { data: profile } = await supabase
         .from('client_profiles')
-        .select('id, kyc_status, first_name, last_name')
+        .select('id, first_name, last_name')
         .eq('user_id', user.id)
         .single()
 
       if (!profile) { setLoading(false); return }
       setProfileId(profile.id)
       setProfileName(`${profile.first_name} ${profile.last_name}`)
-      setKycApproved(profile.kyc_status === 'approved')
 
       const { data: wallet } = await supabase
         .from('client_wallets')
@@ -246,25 +244,19 @@ export default function WithdrawalPage() {
       />
       <div className="p-6 space-y-5 max-w-2xl">
 
-        {!kycApproved && (
-          <Alert variant="warning" title={t.withdrawal.kycRequired}>
-            {t.withdrawal.kycRequiredDesc}
-          </Alert>
-        )}
-
-        {kycApproved && !registeredWallet && (
+        {!registeredWallet && (
           <Alert variant="warning" title={t.withdrawal.noWallet}>
             {t.withdrawal.noWalletDesc}
           </Alert>
         )}
 
-        {kycApproved && hasPendingRequest && (
+        {hasPendingRequest && (
           <Alert variant="info" title={t.withdrawal.pendingRequest}>
             {t.withdrawal.pendingRequestDesc}
           </Alert>
         )}
 
-        {kycApproved && registeredWallet && !hasPendingRequest && (
+        {registeredWallet && !hasPendingRequest && (
           <Card>
             <h2 className="text-base font-semibold text-[var(--kfx-text)] mb-4">{t.withdrawal.newRequest}</h2>
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">

@@ -10,6 +10,7 @@ interface NavItem {
   label: string
   href: string
   icon: React.ReactNode
+  external?: boolean
 }
 
 const DashboardIcon = () => (
@@ -36,6 +37,11 @@ const SupportIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <circle cx="12" cy="12" r="9" strokeWidth={1.75} />
     <path strokeWidth={1.75} d="M9 10h.01M15 10h.01M9 15h6" />
+  </svg>
+)
+const MT5Icon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
   </svg>
 )
 const DepositIcon = () => (
@@ -72,6 +78,7 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
     { label: t.nav.documents,          href: '/portal/documents',           icon: <DocumentIcon /> },
     { label: t.nav.accountApplication, href: '/portal/account-application', icon: <AccountIcon /> },
     { label: t.nav.deposit,            href: '/portal/deposit',             icon: <DepositIcon /> },
+    { label: t.nav.mt5Terminal,        href: 'https://trade.mql5.com/trade', icon: <MT5Icon />, external: true },
     { label: t.nav.withdrawal,         href: '/portal/withdrawal',          icon: <WithdrawIcon /> },
     { label: t.nav.support,            href: '/portal/support',             icon: <SupportIcon /> },
   ]
@@ -174,16 +181,36 @@ export function PortalSidebar({ userName, userEmail, onSignOut }: PortalSidebarP
 }
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
+  const classes = cn(
+    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
+    active
+      ? 'bg-[#eef2f6] text-[#0f172a] font-medium'
+      : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
+  )
+
+  if (item.external) {
+    return (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClick}
+        className={classes}
+      >
+        <span className="text-[#94a3b8]">{item.icon}</span>
+        <span>{item.label}</span>
+        <svg className="w-3 h-3 ml-auto text-[#94a3b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+        </svg>
+      </a>
+    )
+  }
+
   return (
     <Link
       href={item.href}
       onClick={onClick}
-      className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
-        active
-          ? 'bg-[#eef2f6] text-[#0f172a] font-medium'
-          : 'text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
-      )}
+      className={classes}
     >
       <span className={cn(active ? 'text-[#0f172a]' : 'text-[#94a3b8]')}>{item.icon}</span>
       <span>{item.label}</span>

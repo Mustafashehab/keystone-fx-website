@@ -3,6 +3,7 @@ import ExecutionAISection from "@/components/ExecutionAISection";
 import InvestorSection from "@/components/InvestorSection";
 import PartnershipHeroStrip from "@/components/partnership/PartnershipHeroStrip";
 import InfrastructureAllianceSection from "@/components/partnership/InfrastructureAllianceSection";
+import { MT5Section } from "@/components/MT5Section";
 import Link from "next/link";
 
 export default async function Home({
@@ -65,6 +66,9 @@ export default async function Home({
 
       {/* INVESTOR SECTION */}
       <InvestorSection />
+
+      {/* MT5 DOWNLOAD SECTION */}
+      <MT5Section lang={lang} />
 
       {/* INFRASTRUCTURE ALLIANCE — bottom of homepage */}
       <InfrastructureAllianceSection lang={lang} />

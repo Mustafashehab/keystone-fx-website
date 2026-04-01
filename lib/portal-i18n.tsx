@@ -13,6 +13,7 @@ interface PortalTranslations {
     documents: string
     accountApplication: string
     deposit: string
+    mt5Terminal: string
     withdrawal: string
     support: string
     settings: string
@@ -252,6 +253,58 @@ interface PortalTranslations {
       other: string
     }
   }
+  dashboard: {
+    welcomeBack: string
+    subtitle: string
+    profileSetup: string
+    profileSetupDesc: string
+    startVerification: string
+    kycStatus: string
+    documentsVerified: string
+    pending: string
+    application: string
+    submitted: string
+    notStarted: string
+    openTickets: string
+    onboardingProgress: string
+    documentUpload: string
+    documentUploadDesc: string
+    accountApplication: string
+    accountApplicationDesc: string
+    approval: string
+    approvalDesc: string
+    accountOverview: string
+    fullName: string
+    email: string
+    accountType: string
+    memberSince: string
+    editProfile: string
+    recentTickets: string
+    viewAll: string
+    onboardingBanner: {
+      uploadDocs: string
+      uploadDocsBody: string
+      uploadDocsCta: string
+      submitApp: string
+      submitAppBody: string
+      submitAppCta: string
+      underReview: string
+      underReviewBody: string
+      underReviewCta: string
+    }
+    kycLabel: {
+      not_started: string
+      pending: string
+      under_review: string
+      approved: string
+      rejected: string
+    }
+    accountTypeLabel: {
+      individual: string
+      professional: string
+      institutional: string
+    }
+  }
 }
 
 const translations: Record<PortalLang, PortalTranslations> = {
@@ -263,6 +316,7 @@ const translations: Record<PortalLang, PortalTranslations> = {
       documents:          'Documents',
       accountApplication: 'Account Application',
       deposit:            'Deposit USDT',
+      mt5Terminal:         'MT5 Terminal',
       withdrawal:         'Withdraw USDT',
       support:            'Support',
       settings:           'Settings',
@@ -502,6 +556,58 @@ const translations: Record<PortalLang, PortalTranslations> = {
         other:        'Other',
       },
     },
+    dashboard: {
+      welcomeBack:          'Welcome back,',
+      subtitle:             'Monitor your onboarding status, account profile, and recent support activity.',
+      profileSetup:         'Profile Setup Required',
+      profileSetupDesc:     'Please complete your onboarding to continue.',
+      startVerification:    'Start Verification',
+      kycStatus:            'KYC Status',
+      documentsVerified:    'Documents Verified',
+      pending:              'pending',
+      application:          'Application',
+      submitted:            'Submitted',
+      notStarted:           'Not Started',
+      openTickets:          'Open Tickets',
+      onboardingProgress:   'Onboarding Progress',
+      documentUpload:       'Document Upload',
+      documentUploadDesc:   'Upload identity and address documents',
+      accountApplication:   'Account Application',
+      accountApplicationDesc: 'Submit your trading configuration',
+      approval:             'Approval',
+      approvalDesc:         'Review by Keystone FX team',
+      accountOverview:      'Account Overview',
+      fullName:             'Full Name',
+      email:                'Email',
+      accountType:          'Account Type',
+      memberSince:          'Member Since',
+      editProfile:          'Edit profile →',
+      recentTickets:        'Recent Support Tickets',
+      viewAll:              'View all',
+      onboardingBanner: {
+        uploadDocs:     'Upload your documents',
+        uploadDocsBody: 'Upload the required identity and address documents.',
+        uploadDocsCta:  'Upload Documents',
+        submitApp:      'Submit your account application',
+        submitAppBody:  'Documents received. Configure and submit your trading account preferences.',
+        submitAppCta:   'Apply Now',
+        underReview:    'Application under review',
+        underReviewBody:'Your application has been submitted. Our team will review it shortly.',
+        underReviewCta: 'View Status',
+      },
+      kycLabel: {
+        not_started:  'Not Started',
+        pending:      'Pending',
+        under_review: 'In Review',
+        approved:     'Approved',
+        rejected:     'Rejected',
+      },
+      accountTypeLabel: {
+        individual:    'Individual',
+        professional:  'Professional',
+        institutional: 'Institutional',
+      },
+    },
   },
 
   ar: {
@@ -512,6 +618,7 @@ const translations: Record<PortalLang, PortalTranslations> = {
       documents:          'المستندات',
       accountApplication: 'طلب الحساب',
       deposit:            'إيداع USDT',
+      mt5Terminal:         'منصة MT5',
       withdrawal:         'سحب USDT',
       support:            'الدعم',
       settings:           'الإعدادات',
@@ -749,6 +856,58 @@ const translations: Record<PortalLang, PortalTranslations> = {
         application:  'طلب الحساب',
         technical:    'مشكلة تقنية',
         other:        'أخرى',
+      },
+    },
+    dashboard: {
+      welcomeBack:          'مرحباً بعودتك،',
+      subtitle:             'تابع حالة التسجيل وملفك الشخصي ونشاط الدعم الأخير.',
+      profileSetup:         'إعداد الملف الشخصي مطلوب',
+      profileSetupDesc:     'يرجى إكمال التسجيل للمتابعة.',
+      startVerification:    'بدء التحقق',
+      kycStatus:            'حالة KYC',
+      documentsVerified:    'المستندات الموثقة',
+      pending:              'قيد الانتظار',
+      application:          'الطلب',
+      submitted:            'تم الإرسال',
+      notStarted:           'لم يبدأ',
+      openTickets:          'التذاكر المفتوحة',
+      onboardingProgress:   'تقدم التسجيل',
+      documentUpload:       'رفع المستندات',
+      documentUploadDesc:   'ارفع مستندات الهوية والعنوان',
+      accountApplication:   'طلب الحساب',
+      accountApplicationDesc: 'قدم إعدادات حساب التداول',
+      approval:             'الموافقة',
+      approvalDesc:         'مراجعة من فريق Keystone FX',
+      accountOverview:      'نظرة عامة على الحساب',
+      fullName:             'الاسم الكامل',
+      email:                'البريد الإلكتروني',
+      accountType:          'نوع الحساب',
+      memberSince:          'عضو منذ',
+      editProfile:          '← تعديل الملف الشخصي',
+      recentTickets:        'تذاكر الدعم الأخيرة',
+      viewAll:              'عرض الكل',
+      onboardingBanner: {
+        uploadDocs:     'ارفع مستنداتك',
+        uploadDocsBody: 'ارفع مستندات الهوية والعنوان المطلوبة.',
+        uploadDocsCta:  'رفع المستندات',
+        submitApp:      'قدم طلب حسابك',
+        submitAppBody:  'تم استلام المستندات. قم بتهيئة وتقديم تفضيلات حساب التداول.',
+        submitAppCta:   'تقديم الآن',
+        underReview:    'الطلب قيد المراجعة',
+        underReviewBody:'تم تقديم طلبك. سيراجعه فريقنا قريباً.',
+        underReviewCta: 'عرض الحالة',
+      },
+      kycLabel: {
+        not_started:  'لم يبدأ',
+        pending:      'قيد الانتظار',
+        under_review: 'قيد المراجعة',
+        approved:     'مُعتمد',
+        rejected:     'مرفوض',
+      },
+      accountTypeLabel: {
+        individual:    'فردي',
+        professional:  'محترف',
+        institutional: 'مؤسسي',
       },
     },
   },

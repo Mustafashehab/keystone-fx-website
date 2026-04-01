@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
@@ -18,8 +19,8 @@ const ACCOUNT_TYPE_OPTIONS = [
 
 export default function PortalRegisterPage() {
   const supabase = createClient()
+  const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
-  const [success,     setSuccess]     = useState(false)
 
   const {
     register,
@@ -43,6 +44,7 @@ export default function PortalRegisterPage() {
           account_type: data.accountType,
           role:         'client',
         },
+        emailRedirectTo: undefined,
       },
     })
 
@@ -51,6 +53,30 @@ export default function PortalRegisterPage() {
       return
     }
 
+    // Sign in immediately (no email confirmation required)
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email:    data.email,
+      password: data.password,
+    })
+
+    if (signInError) {
+      setServerError(signInError.message)
+      return
+    }
+
+    // Fire welcome email (fire and forget)
+    fetch('/api/notifications/welcome-email', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        email:     data.email,
+        password:  data.password,
+        firstName: data.firstName,
+        lastName:  data.lastName,
+      }),
+    }).catch(() => {})
+
+    // Fire client-registered notification (fire and forget)
     fetch('/api/notifications/client-registered', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -61,26 +87,7 @@ export default function PortalRegisterPage() {
       }),
     }).catch(() => {})
 
-    setSuccess(true)
-  }
-
-  if (success) {
-    return (
-      <div className="animate-fade-in text-center">
-        <div className="w-12 h-12 rounded-full bg-[var(--kfx-success-muted)] flex items-center justify-center mx-auto mb-4">
-          <svg className="w-6 h-6 text-[var(--kfx-success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-semibold text-[var(--kfx-text)] mb-2">Check your email</h2>
-        <p className="text-sm text-[var(--kfx-text-muted)]">
-          We&apos;ve sent a confirmation link to your email address. Click it to activate your account and begin onboarding.
-        </p>
-        <Link href="/portal/login" className="kfx-btn-secondary mt-6 inline-flex">
-          Back to sign in
-        </Link>
-      </div>
-    )
+    router.push('/portal/dashboard')
   }
 
   return (
