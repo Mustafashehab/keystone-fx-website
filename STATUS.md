@@ -1,116 +1,91 @@
 ## Project: Keystone FX
-## Date: 2026-04-01
-## Branch: phase0-financial-fixes
+## Date: 2026-04-02
+## Branch: VER1
+## Last Commit: 42d1ebc — feat: VER1 complete - institutional hero, MT5 integration, Arabic i18n, RLS security
 
 ### Stack
-Next.js 16.1.6, TypeScript, Tailwind CSS, Supabase, TRON/TRC-20, Vercel
+Next.js 16.1.6, TypeScript, Tailwind CSS, Supabase, TRON/TRC-20, Resend, Vercel
 
-### What's Live (main branch)
-- Public website with multi-language support (EN/AR) — homepage, about, products, accounts, contact
-- Client portal — login, registration, dashboard, KYC, documents, deposit (TRON/USDT), withdrawal, support tickets, settings
-- Admin panel — dashboard, client management, withdrawals management, ticket thread
-- TRON wallet system — wallet creation, deposit detection, USDT/TRX sweep, TRX auto-seed on first deposit
-- Deposit monitor cron job
-- Notification bell with real-time updates (client + admin)
-- KYC approval/rejection and new client registration notifications
-- Withdrawal submission with WhatsApp notification
-- Financial services maintenance toggle with WhatsApp fallback
-- Password reveal toggle on login pages
-- Mobile responsive layouts and sidebars
-- WhatsApp floating button
-- ProMarkets Ltd strategic collaboration sections (homepage + about)
+### What's Working (VER1 branch)
+
+#### Public Website
+- Homepage with institutional hero section (canvas execution flow animation)
+- MT5 download section on homepage (Windows, Mac, iOS, Android, Web Terminal)
+- Platforms page with futuristic data animations (Bloomberg-style canvas, candlestick charts, price lines)
+- Accounts page with all CTA buttons linked to /portal/login
+- Products, About, Contact, Execution pages
+- ProMarkets Ltd partnership sections (homepage + about)
 - Animated infrastructure flow visual on about page
+- Multi-language support (EN/AR/ZH) on public pages
+- Root redirect: `/` → `/en`
 
-### What's on phase0-financial-fixes (not yet merged)
-- **Arabic i18n for all portal pages** — deposit, withdrawal, documents, settings, support, KYC pages all use `usePortalI18n()` with full EN/AR translations
-- **Expanded portal-i18n** — `lib/portal-i18n.tsx` updated with complete translation keys for all portal sections
-- **KYC required field indicators** — red stars on personal info fields
-- **Arabic/English language toggle** in client portal with RTL support
-- **Middleware cleanup** — removed unused `request` parameter
-- **ESLint cleanup** — resolved all errors, down to 1 pre-existing warning
-- **Portal-i18n fixes** — useState initializer, useCallback, module-level particles
-- **Infrastructure alliance section** — animated flow visual on about page
-- **ProMarkets Ltd sections** — strategic collaboration on homepage and about
-- **Root redirect** — `/` redirects to `/en` instead of `/portal/login`
-- **Type cleanup** — removed incorrect type casts, unused imports, Footer lang prop
+#### Client Portal
+- Registration flow: sign up → auto sign-in → welcome email → redirect to dashboard (no email confirmation)
+- Welcome email via Resend (info@keystone-fx.com) with credentials
+- Dashboard with full Arabic i18n (server component + client DashboardContent wrapper)
+- KYC optional — deposit, withdrawal, account application all accessible without KYC approval
+- Deposit page: TRON/USDT wallet creation, QR code, balance, transaction history
+- Withdrawal page: TRC-20 address validation, MT5 account, WhatsApp notification
+- Documents, KYC, Support tickets, Settings — all with EN/AR translations
+- MT5 Terminal link in portal sidebar (opens trade.mql5.com in new tab)
+- WhatsApp floating button with RTL support
+- Financial services maintenance toggle with WhatsApp fallback
+- Notification bell with real-time updates
+- Password reveal toggle on login pages
+- Mobile responsive sidebars
 
-### Files Recently Modified
+#### Admin Panel
+- Dashboard, client management, withdrawals management
+- KYC approval/rejection notifications
+- Ticket thread system
+- Wallet recovery tools
+- Platform settings management
+
+#### Infrastructure
+- TRON wallet system: creation, deposit detection, USDT/TRX sweep, TRX auto-seed
+- Deposit monitor cron job
+- RLS security script ready (scripts/enable-rls.sql) — 15 tables covered
+
+### Build & Lint Status
 ```
-git diff --name-only main..phase0-financial-fixes
+Build: PASS — 45/45 pages compiled (9.2s Turbopack)
+Lint:  0 errors, 2 warnings
+  - components/HeroSection.tsx:265 — padY unused (in provided code, not modified)
+  - lib/i18n.ts:1053 — Unexpected any (pre-existing)
 ```
-- STATUS.md
-- app/(admin)/admin/dashboard/page.tsx
-- app/(admin)/admin/withdrawals/page.tsx
-- app/(auth)/portal/register/page.tsx
-- app/(portal)/layout.tsx
-- app/(portal)/portal/deposit/page.tsx
-- app/(portal)/portal/documents/page.tsx
-- app/(portal)/portal/kyc/page.tsx
-- app/(portal)/portal/settings/page.tsx
-- app/(portal)/portal/support/[id]/page.tsx
-- app/(portal)/portal/support/page.tsx
-- app/(portal)/portal/withdrawal/page.tsx
-- app/[lang]/about/page.tsx
-- app/[lang]/accounts/page.tsx
-- app/[lang]/contact/page.tsx
-- app/[lang]/layout.tsx
-- app/[lang]/page.tsx
-- app/[lang]/products/page.tsx
-- app/api/cron/deposit-monitor/route.ts
-- app/api/tron/check-deposits/route.ts
-- app/api/tron/create-wallet/route.ts
-- app/page.tsx
-- components/ExecutionMetrics.tsx
-- components/Footer.tsx
-- components/WhatsAppButton.tsx
-- components/admin/AdminTicketThread.tsx
-- components/layout/AdminHeader.tsx
-- components/layout/PortalHeader.tsx
-- components/layout/PortalSidebar.tsx
-- components/layout/PortalWhatsAppButton.tsx
-- components/partnership/AboutAllianceBlock.tsx
-- components/partnership/InfrastructureAllianceSection.tsx
-- components/partnership/PartnershipHeroStrip.tsx
-- components/ui/FormFields.tsx
-- components/ui/NotificationBell.tsx
-- components/visuals/InfrastructureFlow.tsx
-- eslint.config.mjs
-- lib/dal/documents.ts
-- lib/portal-i18n.tsx
-- lib/tron/sweep.ts
-- lib/tron/wallet.ts
-- middleware.ts
-- next.config.ts
 
-### Current Lint Status
-```
-> keystone-fx@0.1.0 lint
-> eslint
+### What's Pending
 
-C:\Users\user\Desktop\KEYSTONE-FX WEB\keystone-fx-website\lib\i18n.ts
-  1053:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+1. **Welcome email not sending in production** — `RESEND_API_KEY` must be added to Vercel environment variables. It's set in `.env.local` for local dev but Vercel needs it separately.
 
-✖ 1 problem (0 errors, 1 warning)
-```
+2. **RLS not yet applied** — `scripts/enable-rls.sql` is generated and committed but needs to be run manually in Supabase SQL Editor. This enables Row-Level Security on all 15 public tables.
+
+3. **First login onboarding form** — VER1 planned feature #4 (collect name, last name, DOB on first login) not yet implemented.
+
+4. **Supabase email confirmation disabled** — For the auto-sign-in registration flow to work, email confirmation must be disabled in Supabase Auth settings (Authentication → Email → Confirm email = OFF).
 
 ### Known Issues
-- Pre-existing lint warning in `lib/i18n.ts:1053` (`Unexpected any`) — not introduced by recent changes
-- Toast messages inside KYC API call handlers (e.g. "KYC submitted", "Submission failed") are still hardcoded English — no translation keys defined
-- ConfirmDialog in settings page has hardcoded title/message/buttons — no translation keys
-- Build not verified on this branch — recommend running `npm run build` before merging
 
-### Pending Tasks
-- VER1 planned features (to be implemented):
-  1. Remove email confirmation on registration
-  2. Welcome email with credentials sent from info@keystone-fx.com
-  3. KYC optional (not blocking deposit/withdrawal)
-  4. First login onboarding form (collect name, last name, DOB)
+- VS Code TypeScript IntelliSense may show errors in some files — these are NOT real build errors. `npm run build` passes clean with 0 TypeScript errors.
+- Toast messages in KYC API call handlers are hardcoded English (no translation keys)
+- ConfirmDialog in settings page has hardcoded title/message/buttons (no translation keys)
+- `middleware.ts` uses deprecated convention — Next.js 16 recommends migrating to `proxy`
+- `ExecutionMetrics.tsx` component exists but is no longer imported (orphaned file)
 
 ### Environment Variables Needed
-- `RESEND_API_KEY` — for sending welcome emails via Resend (required for VER1 feature #2)
+- `RESEND_API_KEY` — for sending welcome emails via Resend (**MUST be added to Vercel**)
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL (already set)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anonymous key (already set)
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key for server-side operations (already set)
-- `TRON_MASTER_ADDRESS` — Master TRON wallet address for sweep operations (already set)
-- `TRON_MASTER_PRIVATE_KEY` — Master TRON wallet private key (already set)
-- `CRON_SECRET` — Secret for authenticating cron job requests (already set)
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (already set)
+- `TRON_MASTER_ADDRESS` / `TRON_MASTER_PRIVATE_KEY` — TRON wallet (already set)
+- `TRON_GRID_API_KEY` — TronGrid API access (already set)
+- `TRON_ENCRYPTION_SECRET` — Wallet encryption (already set)
+- `CRON_SECRET` — Cron job authentication (already set)
+
+### Next Steps
+1. Add `RESEND_API_KEY` to Vercel environment variables
+2. Disable email confirmation in Supabase Auth settings
+3. Run `scripts/enable-rls.sql` in Supabase SQL Editor
+4. Test full registration → welcome email → dashboard flow on production
+5. Implement first-login onboarding form (VER1 feature #4)
+6. Merge VER1 → main when ready
