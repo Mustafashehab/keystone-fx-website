@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { encryptPrivateKey, decryptPrivateKey } from './encrypt'
+import { encryptPrivateKey } from './encrypt'
 import { createClient } from '@supabase/supabase-js'
 import { seedClientWalletTrx } from './seed'
 
@@ -54,7 +54,7 @@ export async function createClientWallet(clientId: string): Promise<{
         type:      'wallet.trx_seed_failed',
         title:     'TRX Seed Failed on Wallet Creation',
         message:   `Failed to auto-seed 14 TRX to new wallet ${address}. Send TRX manually before client deposits. Error: ${seedError}`,
-        link:      '/admin/wallet-recovery',
+        link:      `/admin/clients/${clientId}`,
       })
     } else {
       console.log('[wallet] TRX seed sent on wallet creation:', seedTxHash)
@@ -91,16 +91,10 @@ export async function getClientWallet(clientId: string) {
   const supabase = getServiceClient()
   const { data, error } = await supabase
     .from('client_wallets')
-    .select('*')
+    .select('id, client_id, tron_address, usdt_balance, total_deposited, sweep_locked, last_checked_at')
     .eq('client_id', clientId)
     .maybeSingle()
 
   if (error || !data) return null
   return data
-}
-
-export async function getDecryptedPrivateKey(clientId: string): Promise<string | null> {
-  const wallet = await getClientWallet(clientId)
-  if (!wallet) return null
-  return decryptPrivateKey(wallet.encrypted_private_key)
 }

@@ -113,14 +113,14 @@ export default function DepositPage() {
   const [sweptAmount,  setSweptAmount]  = useState(0)
   const prevBalanceRef = useRef<number | null>(null)
 
-  const [financialEnabled, setFinancialEnabled] = useState(true)
+  const [financialEnabled, setFinancialEnabled] = useState(false)
   const [settingsLoading,  setSettingsLoading]  = useState(true)
 
   useEffect(() => {
     fetch('/api/admin/settings')
       .then(r => r.json())
-      .then(d => { setFinancialEnabled(d.financial_services_enabled ?? true) })
-      .catch(() => {})
+      .then(d => { setFinancialEnabled(d.financial_services_enabled === true) })
+      .catch(() => { setFinancialEnabled(false) })
       .finally(() => setSettingsLoading(false))
   }, [])
 
@@ -139,7 +139,7 @@ export default function DepositPage() {
 
     const { data: walletData } = await supabase
       .from('client_wallets')
-      .select('*')
+      .select('tron_address, usdt_balance, total_deposited, last_checked_at')
       .eq('client_id', profile.id)
       .maybeSingle()
 
@@ -154,7 +154,7 @@ export default function DepositPage() {
 
       const { data: txData } = await supabase
         .from('deposit_transactions')
-        .select('*')
+        .select('id, tx_hash, amount, status, created_at')
         .eq('client_id', profile.id)
         .order('created_at', { ascending: false })
         .limit(20)

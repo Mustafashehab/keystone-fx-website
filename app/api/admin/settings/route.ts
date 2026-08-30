@@ -1,30 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { requireAdminApi } from '@/lib/auth/guards'
+import { parseJsonBody } from '@/lib/api/validation'
+import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
+
+const updateFinancialSettingsSchema = z.object({
+  financial_services_enabled: z.boolean(),
+})
 
 export async function GET() {
-  try {
-    const supabase = await createServiceRoleClient()
-    const { data, error } = await supabase
-      .from('platform_settings')
-      .select('financial_services_enabled')
-      .eq('id', 'global')
-      .single()
-
-    if (error) throw error
-    return NextResponse.json({ financial_services_enabled: data.financial_services_enabled })
-  } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
-  }
+  const enabled = await areFinancialOperationsEnabled()
+  return NextResponse.json({
+    financial_services_enabled: enabled,
+    deployment_gate_enabled: process.env.FINANCIAL_OPERATIONS_ENABLED === 'true',
+  })
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (user.user_metadata?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
 
-    const { financial_services_enabled } = await req.json()
+    const parsed = await parseJsonBody(req, updateFinancialSettingsSchema)
+    if (parsed.response) return parsed.response
+    const { financial_services_enabled } = parsed.data
 
     const supabase = await createServiceRoleClient()
     const { error } = await supabase
@@ -32,12 +32,16 @@ export async function PATCH(req: NextRequest) {
       .update({
         financial_services_enabled,
         updated_at: new Date().toISOString(),
-        updated_by: user.id,
+        updated_by: auth.user.id,
       })
       .eq('id', 'global')
 
     if (error) throw error
-    return NextResponse.json({ success: true, financial_services_enabled })
+    return NextResponse.json({
+      success: true,
+      financial_services_enabled: await areFinancialOperationsEnabled(),
+      deployment_gate_enabled: process.env.FINANCIAL_OPERATIONS_ENABLED === 'true',
+    })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
   }

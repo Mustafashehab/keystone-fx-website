@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { requireAdminApi } from '@/lib/auth/guards'
+import { parseJsonBody } from '@/lib/api/validation'
 import { createNotification } from '@/lib/notifications'
+
+const reviewKycSchema = z.object({
+  kycId: z.string().uuid(),
+  clientId: z.string().uuid(),
+  status: z.enum(['approved', 'rejected']),
+  rejectionReason: z.string().trim().max(2000).optional().nullable(),
+})
 
 export async function GET() {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json([], { status: 401 })
-    if (user.user_metadata?.role !== 'admin') return NextResponse.json([], { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
 
     const supabase = await createServiceRoleClient()
     const { data } = await supabase
@@ -23,12 +31,16 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (user.user_metadata?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
 
-    const { kycId, clientId, status, reviewerId, rejectionReason } = await req.json()
+    const parsed = await parseJsonBody(req, reviewKycSchema)
+    if (parsed.response) return parsed.response
+    const { kycId, clientId, status, rejectionReason } = parsed.data
+
+    if (status === 'rejected' && !rejectionReason) {
+      return NextResponse.json({ error: 'A rejection reason is required' }, { status: 400 })
+    }
     const now = new Date().toISOString()
 
     const supabase = await createServiceRoleClient()
@@ -38,8 +50,8 @@ export async function PATCH(req: NextRequest) {
       .update({
         status,
         reviewed_at:      now,
-        reviewed_by:      reviewerId,
-        rejection_reason: rejectionReason ?? null,
+        reviewed_by:      auth.user.id,
+        rejection_reason: status === 'rejected' ? rejectionReason : null,
         updated_at:       now,
       })
       .eq('id', kycId)

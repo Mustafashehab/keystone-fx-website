@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireAuthenticatedApi } from '@/lib/auth/guards'
+import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
 import { createClientWallet, getClientWallet } from '@/lib/tron/wallet'
 import { createNotification } from '@/lib/notifications'
 
 export async function POST(_req: NextRequest) {
   try {
+    const auth = await requireAuthenticatedApi()
+    if (auth.response) return auth.response
+
+    if (!(await areFinancialOperationsEnabled())) {
+      return NextResponse.json({ error: 'Financial operations are disabled' }, { status: 503 })
+    }
+
     const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { data: profile } = await supabase
       .from('client_profiles')
       .select('id, kyc_status, first_name, last_name')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single()
 
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })

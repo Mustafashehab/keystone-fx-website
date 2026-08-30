@@ -437,11 +437,6 @@ export default function KYCPage() {
 
       await fetch('/api/notifications/kyc-submitted', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          clientId:   profile.id,
-          clientName: data.firstName + ' ' + data.lastName,
-        }),
       })
 
       success('KYC submitted', 'Your information has been saved and is under review.')

@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { requireAdminApi } from '@/lib/auth/guards'
+import { parseJsonBody } from '@/lib/api/validation'
+import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
+
+const attestationSchema = z.object({
+  withdrawalId: z.string().uuid(),
+  attestedBalance: z.coerce.number().finite().nonnegative(),
+})
 
 // POST /api/admin/withdrawals/attest
 // Admin submits the MT5 free margin they visually confirmed in the terminal.
@@ -9,26 +18,16 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
 
 export async function POST(req: NextRequest) {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (user.user_metadata?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
+
+    if (!(await areFinancialOperationsEnabled())) {
+      return NextResponse.json({ error: 'Financial operations are disabled' }, { status: 503 })
     }
 
-    const { withdrawalId, attestedBalance } = await req.json()
-
-    if (!withdrawalId) {
-      return NextResponse.json({ error: 'withdrawalId is required' }, { status: 400 })
-    }
-
-    const freeMargin = Number(attestedBalance)
-    if (isNaN(freeMargin) || freeMargin < 0) {
-      return NextResponse.json(
-        { error: 'Free margin must be a non-negative number' },
-        { status: 400 }
-      )
-    }
+    const parsed = await parseJsonBody(req, attestationSchema)
+    if (parsed.response) return parsed.response
+    const { withdrawalId, attestedBalance: freeMargin } = parsed.data
 
     const supabase = await createServiceRoleClient()
 
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
       .upsert(
         {
           withdrawal_id:    withdrawalId,
-          admin_id:         user.id,
+          admin_id:         auth.user.id,
           attested_balance: freeMargin,
           attested_at:      now,
           used:             false,

@@ -118,7 +118,7 @@ export async function checkWalletDeposits(
             type:      'wallet.trx_seed_failed',
             title:     'TRX Seed Failed',
             message:   `Failed to auto-seed 14 TRX to ${walletAddress}. Manual action required. Error: ${seedError}`,
-            link:      '/admin/wallet-recovery',
+            link:      `/admin/clients/${clientId}`,
           })
         } else {
           console.log('[monitor] TRX seed sent:', seedTxHash)

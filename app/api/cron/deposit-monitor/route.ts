@@ -2,13 +2,19 @@ import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { checkWalletDeposits } from '@/lib/tron/monitor'
 import { createNotification } from '@/lib/notifications'
+import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
 
 export const maxDuration = 60 // seconds — Vercel max for hobby plan
 
 export async function GET(request: Request) {
+  const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (!(await areFinancialOperationsEnabled())) {
+    return NextResponse.json({ error: 'Financial operations are disabled' }, { status: 503 })
   }
 
   try {

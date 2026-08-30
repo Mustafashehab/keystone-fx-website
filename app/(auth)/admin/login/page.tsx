@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
       password: data.password,
     })
     if (error) { setServerError(error.message); return }
-    if (authData.user?.user_metadata?.role !== 'admin') {
+    if (authData.user?.app_metadata?.role !== 'admin') {
       await supabase.auth.signOut()
       setServerError('Access denied. Admin credentials required.')
       return
