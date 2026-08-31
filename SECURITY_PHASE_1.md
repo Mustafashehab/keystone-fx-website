@@ -17,8 +17,8 @@ deposit monitoring, or fund sweeping.
    key, cron secret, and any wallet credentials that have appeared in a file,
    message, runbook, screenshot, log, or repository history. Do not commit the
    replacement values.
-4. Apply and verify the Phase 2 Supabase migration before enabling the
-   deployment flag. That migration must:
+4. Review and apply the Phase 2 Supabase migration documented in
+   `SECURITY_PHASE_2.md` before enabling the deployment flag. The migration:
    - prevent authenticated clients from selecting `encrypted_private_key`;
    - prevent clients from inserting or updating withdrawal status, reviewer,
      balance, sweep-lock, transaction, and audit fields;
