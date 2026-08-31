@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
 import { usePortalI18n } from '@/lib/portal-i18n'
+import { formatDecimalAmount } from '@/lib/tron/amounts'
 
 const WHATSAPP_LINK = 'https://wa.me/447511648370'
 
@@ -113,14 +114,14 @@ export default function DepositPage() {
   const [sweptAmount,  setSweptAmount]  = useState(0)
   const prevBalanceRef = useRef<number | null>(null)
 
-  const [financialEnabled, setFinancialEnabled] = useState(true)
+  const [financialEnabled, setFinancialEnabled] = useState(false)
   const [settingsLoading,  setSettingsLoading]  = useState(true)
 
   useEffect(() => {
     fetch('/api/admin/settings')
       .then(r => r.json())
-      .then(d => { setFinancialEnabled(d.financial_services_enabled ?? true) })
-      .catch(() => {})
+      .then(d => { setFinancialEnabled(d.financial_services_enabled === true) })
+      .catch(() => { setFinancialEnabled(false) })
       .finally(() => setSettingsLoading(false))
   }, [])
 
@@ -139,7 +140,7 @@ export default function DepositPage() {
 
     const { data: walletData } = await supabase
       .from('client_wallets')
-      .select('*')
+      .select('tron_address, usdt_balance, total_deposited, last_checked_at')
       .eq('client_id', profile.id)
       .maybeSingle()
 
@@ -154,7 +155,7 @@ export default function DepositPage() {
 
       const { data: txData } = await supabase
         .from('deposit_transactions')
-        .select('*')
+        .select('id, tx_hash, amount, status, created_at')
         .eq('client_id', profile.id)
         .order('created_at', { ascending: false })
         .limit(20)
@@ -212,7 +213,7 @@ export default function DepositPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       if (data.newDeposits > 0) {
-        success('Deposit detected', `${data.newDeposits} new deposit(s) totalling $${data.totalNewAmount.toFixed(2)} USDT.`)
+        success('Deposit detected', `${data.newDeposits} new deposit(s) totalling $${formatDecimalAmount(String(data.totalNewAmount))} USDT.`)
         await loadWallet()
       } else {
         success('No new deposits', 'No new transactions found.')

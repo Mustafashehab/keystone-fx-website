@@ -99,10 +99,6 @@ export default function SupportPage() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          clientId:   profile.id,
-          clientName: `${profile.first_name} ${profile.last_name}`,
-          subject:    data.subject,
-          priority:   data.priority,
           ticketId:   (ticket as Ticket).id,
         }),
       })

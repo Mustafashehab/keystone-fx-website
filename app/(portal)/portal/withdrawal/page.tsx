@@ -68,7 +68,6 @@ export default function WithdrawalPage() {
   const { t } = usePortalI18n()
 
   const [profileId,        setProfileId]        = useState<string | null>(null)
-  const [profileName,      setProfileName]      = useState('')
   const [registeredWallet, setRegisteredWallet] = useState<string | null>(null)
   const [requests,         setRequests]         = useState<WithdrawalRequest[]>([])
   const [loading,          setLoading]          = useState(true)
@@ -78,14 +77,14 @@ export default function WithdrawalPage() {
   const [mt5Account,       setMt5Account]       = useState('')
   const [addrError,        setAddrError]        = useState('')
 
-  const [financialEnabled, setFinancialEnabled] = useState(true)
+  const [financialEnabled, setFinancialEnabled] = useState(false)
   const [settingsLoading,  setSettingsLoading]  = useState(true)
 
   useEffect(() => {
     fetch('/api/admin/settings')
       .then(r => r.json())
-      .then(d => { setFinancialEnabled(d.financial_services_enabled ?? true) })
-      .catch(() => {})
+      .then(d => { setFinancialEnabled(d.financial_services_enabled === true) })
+      .catch(() => { setFinancialEnabled(false) })
       .finally(() => setSettingsLoading(false))
   }, [])
 
@@ -102,7 +101,6 @@ export default function WithdrawalPage() {
 
       if (!profile) { setLoading(false); return }
       setProfileId(profile.id)
-      setProfileName(`${profile.first_name} ${profile.last_name}`)
 
       const { data: wallet } = await supabase
         .from('client_wallets')
@@ -172,30 +170,18 @@ export default function WithdrawalPage() {
 
     setSubmitting(true)
     try {
-      const { data: newRequest, error } = await supabase
-        .from('withdrawal_requests')
-        .insert({
-          client_id:      profileId,
-          amount:         parsedAmount,
-          wallet_address: walletAddr,
-          mt5_account:    mt5Account.trim(),
-          status:         'pending',
-        })
-        .select('id')
-        .single()
-
-      if (error) throw new Error(error.message)
-
-      await fetch('/api/notifications/withdrawal-submitted', {
+      const response = await fetch('/api/client/withdrawals', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          clientId:   profileId,
-          clientName: profileName,
-          amount:     parsedAmount,
-          requestId:  newRequest?.id,
+          amount: parsedAmount,
+          walletAddress: walletAddr,
+          mt5Account: mt5Account.trim(),
         }),
       })
+
+      const responseBody = await response.json()
+      if (!response.ok) throw new Error(responseBody.error ?? 'Request failed')
 
       success('Request submitted', 'Your withdrawal request is under review.')
       setAmount('')

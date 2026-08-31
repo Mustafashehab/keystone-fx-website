@@ -1,9 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { requireAuthenticatedApi } from '@/lib/auth/guards'
 
-export async function POST(req: NextRequest) {
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>'"]/g, (character) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;',
+    }
+    return entities[character]
+  })
+}
+
+export async function POST() {
   try {
-    const { email, password, firstName, lastName } = await req.json()
+    const auth = await requireAuthenticatedApi()
+    if (auth.response) return auth.response
+
+    const email = auth.user.email
+    if (!email) return NextResponse.json({ error: 'Email not available' }, { status: 400 })
+
+    const firstName = escapeHtml(String(auth.user.user_metadata?.first_name ?? 'Client').slice(0, 100))
+    const lastName = escapeHtml(String(auth.user.user_metadata?.last_name ?? '').slice(0, 100))
+    const safeEmail = escapeHtml(email)
 
     const apiKey = process.env.RESEND_API_KEY
     // TODO: add RESEND_API_KEY to .env.local and your hosting platform (Vercel)
@@ -22,7 +44,7 @@ export async function POST(req: NextRequest) {
         </div>
         <div style="background: #ffffff; padding: 40px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
           <h2 style="margin: 0 0 8px; font-size: 20px;">Welcome, ${firstName}!</h2>
-          <p style="color: #64748b; margin: 0 0 28px; font-size: 15px;">Your Keystone FX account has been created. Below are your login credentials.</p>
+          <p style="color: #64748b; margin: 0 0 28px; font-size: 15px;">Your Keystone FX account has been created. Use your email address and the password you selected to sign in.</p>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 24px; margin-bottom: 28px;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -32,11 +54,7 @@ export async function POST(req: NextRequest) {
               </tr>
               <tr style="border-top: 1px solid #e2e8f0;">
                 <td style="padding: 8px 0; font-size: 13px; color: #64748b;">Email</td>
-                <td style="padding: 8px 0; font-size: 13px; font-weight: 600; color: #0f172a;">${email}</td>
-              </tr>
-              <tr style="border-top: 1px solid #e2e8f0;">
-                <td style="padding: 8px 0; font-size: 13px; color: #64748b;">Password</td>
-                <td style="padding: 8px 0; font-size: 13px; font-weight: 600; color: #0f172a; font-family: monospace;">${password}</td>
+                <td style="padding: 8px 0; font-size: 13px; font-weight: 600; color: #0f172a;">${safeEmail}</td>
               </tr>
             </table>
           </div>
@@ -47,7 +65,7 @@ export async function POST(req: NextRequest) {
           </a>
 
           <p style="color: #94a3b8; font-size: 12px; margin: 28px 0 0;">
-            Please keep your credentials safe and change your password after first login.
+            Keystone FX will never send your password by email or ask you to share it.
             If you have any questions, contact us via WhatsApp or email.
           </p>
         </div>
@@ -57,7 +75,7 @@ export async function POST(req: NextRequest) {
     const { error } = await resend.emails.send({
       from:    'Keystone FX <info@keystone-fx.com>',
       to:      [email],
-      subject: 'Welcome to Keystone FX — Your Account Details',
+      subject: 'Welcome to Keystone FX',
       html,
     })
 

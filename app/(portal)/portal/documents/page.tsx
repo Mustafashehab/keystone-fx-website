@@ -14,6 +14,7 @@ import type { Document, DocumentType, ClientProfile } from '@/types'
 import { usePortalI18n } from '@/lib/portal-i18n'
 
 const BUCKET = 'client-documents'
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 const REQUIRED_DOCUMENTS: {
   type: DocumentType
@@ -88,6 +89,14 @@ export default function DocumentsPage() {
 
   async function handleUpload(file: File, type: DocumentType) {
     if (!profile) return
+    if (file.size <= 0 || file.size > MAX_FILE_SIZE) {
+      toastError('Upload failed', 'Files must be between 1 byte and 10 MB.')
+      return
+    }
+    if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)) {
+      toastError('Upload failed', 'Only PDF, JPEG, and PNG files are accepted.')
+      return
+    }
     setUploading((prev) => ({ ...prev, [type]: true }))
 
     try {
@@ -135,12 +144,13 @@ export default function DocumentsPage() {
 
   async function handleDelete(doc: Document) {
     try {
-      await supabase.storage.from(BUCKET).remove([doc.file_path])
-      await supabase.from('documents').delete().eq('id', doc.id)
+      const response = await fetch(`/api/client/documents/${doc.id}`, { method: 'DELETE' })
+      const responseBody = await response.json()
+      if (!response.ok) throw new Error(responseBody.error ?? 'Unable to remove document')
       setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
       success('Document removed')
-    } catch {
-      toastError('Delete failed', 'Unable to remove document.')
+    } catch (error: unknown) {
+      toastError('Delete failed', error instanceof Error ? error.message : 'Unable to remove document.')
     }
   }
 

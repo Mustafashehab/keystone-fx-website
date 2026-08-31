@@ -106,9 +106,21 @@ export default function AccountApplicationPage() {
         setApplication(app)
         setValue('accountType',
           app.account_type as AccountApplicationFormData['accountType'])
-        setValue('leveragePreference',   app.leverage_preference ?? '')
-        setValue('baseCurrency',         app.base_currency ?? '')
-        setValue('platformPreference',   app.platform_preference ?? '')
+        if (['1:100', '1:200', '1:500'].includes(app.leverage_preference ?? '')) {
+          setValue(
+            'leveragePreference',
+            app.leverage_preference as AccountApplicationFormData['leveragePreference']
+          )
+        }
+        if (['USD', 'EUR'].includes(app.base_currency ?? '')) {
+          setValue(
+            'baseCurrency',
+            app.base_currency as AccountApplicationFormData['baseCurrency']
+          )
+        }
+        if (app.platform_preference === 'MT5') {
+          setValue('platformPreference', 'MT5')
+        }
         setValue('initialDepositAmount', app.initial_deposit_amount ?? 0)
       }
 
@@ -122,29 +134,15 @@ export default function AccountApplicationPage() {
     if (!profile) return
 
     try {
-      const { data: upserted, error: upsertErr } = await supabase
-        .from('account_applications')
-        .upsert({
-          client_id:              profile.id,
-          account_type:           data.accountType,
-          leverage_preference:    data.leveragePreference,
-          base_currency:          data.baseCurrency,
-          platform_preference:    data.platformPreference,
-          initial_deposit_amount: data.initialDepositAmount,
-          status:                 'submitted',
-          submitted_at:           new Date().toISOString(),
-          updated_at:             new Date().toISOString(),
-        })
-        .select()
-        .single()
+      const response = await fetch('/api/client/account-application', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
 
-      if (upsertErr) throw new Error(upsertErr.message)
-      setApplication(upserted as AccountApplication)
-
-      await supabase
-        .from('client_profiles')
-        .update({ onboarding_step: 4, updated_at: new Date().toISOString() })
-        .eq('id', profile.id)
+      const responseBody = await response.json()
+      if (!response.ok) throw new Error(responseBody.error ?? 'Submission failed')
+      setApplication(responseBody.application as AccountApplication)
 
       setProfile((prev) => (prev ? { ...prev, onboarding_step: 4 } : prev))
       success('Application submitted', 'Your trading account application is under review.')

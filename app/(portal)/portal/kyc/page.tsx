@@ -392,56 +392,39 @@ export default function KYCPage() {
 
     setSubmitting(true)
     try {
-      const { error: profileErr } = await supabase
-        .from('client_profiles')
-        .update({
-          first_name:           data.firstName,
-          last_name:            data.lastName,
-          phone:                data.phone || null,
-          date_of_birth:        data.dateOfBirth,
-          nationality:          data.nationality,
-          country_of_residence: data.countryOfResidence || null,
-          address_line1:        data.addressLine1 || null,
-          address_line2:        data.addressLine2 || null,
-          city:                 data.city || null,
-          postal_code:          data.postalCode || null,
-          kyc_status:           'pending',
-          onboarding_step:      Math.max(profile.onboarding_step, 1),
-          updated_at:           new Date().toISOString(),
-        })
-        .eq('id', profile.id)
+      const response = await fetch('/api/client/kyc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          dateOfBirth: data.dateOfBirth,
+          nationality: data.nationality,
+          countryOfResidence: data.countryOfResidence,
+          addressLine1: data.addressLine1,
+          addressLine2: data.addressLine2,
+          city: data.city,
+          postalCode: data.postalCode,
+          phone: data.phone,
+          employmentStatus: data.employmentStatus,
+          employerName: data.employerName,
+          annualIncomeRange: data.annualIncomeRange,
+          sourceOfFunds: data.sourceOfFunds,
+          tradingExperience: data.tradingExperience,
+          investmentObjectives: objectives,
+          politicallyExposed: isPEP,
+          pepDetails: data.pepDetails,
+          usPerson: isUSPerson,
+          taxResidency: data.taxResidency,
+          taxIdNumber: data.taxIdNumber,
+        }),
+      })
 
-      if (profileErr) throw new Error(profileErr.message)
-
-      const { error: kycErr } = await supabase
-        .from('kyc_submissions')
-        .upsert({
-          client_id:             profile.id,
-          status:                'pending',
-          submitted_at:          new Date().toISOString(),
-          employment_status:     data.employmentStatus || null,
-          employer_name:         data.employerName || null,
-          annual_income_range:   data.annualIncomeRange || null,
-          source_of_funds:       data.sourceOfFunds || null,
-          trading_experience:    data.tradingExperience || null,
-          investment_objectives: objectives.length > 0 ? objectives : null,
-          politically_exposed:   isPEP,
-          pep_details:           data.pepDetails || null,
-          us_person:             isUSPerson,
-          tax_residency:         data.taxResidency || null,
-          tax_id_number:         data.taxIdNumber || null,
-          updated_at:            new Date().toISOString(),
-        })
-
-      if (kycErr) throw new Error(kycErr.message)
+      const responseBody = await response.json()
+      if (!response.ok) throw new Error(responseBody.error ?? 'KYC submission failed')
 
       await fetch('/api/notifications/kyc-submitted', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          clientId:   profile.id,
-          clientName: data.firstName + ' ' + data.lastName,
-        }),
       })
 
       success('KYC submitted', 'Your information has been saved and is under review.')

@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser, isAdminUser } from '@/lib/auth/guards'
 import { AdminHeader } from '@/components/layout/AdminHeader'
 
 export default async function AdminDashboardPage() {
-  const supabaseAuth = await createServerSupabaseClient()
-  const { data: { user } } = await supabaseAuth.auth.getUser()
+  const user = await getAuthenticatedUser()
   if (!user) redirect('/admin/login')
-  if (user.user_metadata?.role !== 'admin') redirect('/portal/dashboard')
+  if (!isAdminUser(user)) redirect('/portal/dashboard')
 
   const supabase = await createServiceRoleClient()
 

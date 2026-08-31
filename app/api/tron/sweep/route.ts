@@ -1,23 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { requireAdminApi } from '@/lib/auth/guards'
+import { parseJsonBody } from '@/lib/api/validation'
+import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
 import { sweepToMaster } from '@/lib/tron/sweep'
+
+const sweepSchema = z.object({ clientId: z.string().uuid() })
+
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (user.user_metadata?.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
+
+    if (!(await areFinancialOperationsEnabled())) {
+      return NextResponse.json({ error: 'Financial operations are disabled' }, { status: 503 })
     }
 
-    const { clientId } = await req.json()
-    if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+    const parsed = await parseJsonBody(req, sweepSchema)
+    if (parsed.response) return parsed.response
+    const { clientId } = parsed.data
 
     const result = await sweepToMaster(clientId)
 
     if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: result.error,
+          pendingReview: result.pendingReview,
+          usdtTxHash: result.usdtTxHash,
+          usdtAmount: result.usdtAmount,
+        },
+        { status: result.pendingReview ? 409 : 500 }
+      )
     }
 
     return NextResponse.json({
@@ -27,6 +43,7 @@ export async function POST(req: NextRequest) {
       usdtAmount: result.usdtAmount,
       trxAmount:  result.trxAmount,
       confirmed:  result.confirmed,
+      pendingReview: result.pendingReview,
     })
   } catch (err: unknown) {
     return NextResponse.json(

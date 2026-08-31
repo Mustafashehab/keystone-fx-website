@@ -64,27 +64,15 @@ export default function PortalRegisterPage() {
       return
     }
 
-    // Fire welcome email (fire and forget)
+    // The server derives the recipient from the authenticated session.
+    // Passwords are never sent to an application endpoint or included in email.
     fetch('/api/notifications/welcome-email', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        email:     data.email,
-        password:  data.password,
-        firstName: data.firstName,
-        lastName:  data.lastName,
-      }),
     }).catch(() => {})
 
-    // Fire client-registered notification (fire and forget)
+    // The server also derives registration details from the authenticated user.
     fetch('/api/notifications/client-registered', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        clientName:  `${data.firstName} ${data.lastName}`,
-        email:       data.email,
-        accountType: data.accountType,
-      }),
     }).catch(() => {})
 
     router.push('/portal/dashboard')

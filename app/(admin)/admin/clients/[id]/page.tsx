@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser, isAdminUser } from '@/lib/auth/guards'
 import { AdminHeader } from '@/components/layout/AdminHeader'
 import { formatDate, formatDateTime, formatFileSize } from '@/lib/utils'
 import { InternalNotesPanel } from '@/components/admin/InternalNotesPanel'
@@ -39,10 +40,9 @@ const TICKET_STYLES: Record<string, string> = {
 export default async function AdminClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const supabaseAuth = await createServerSupabaseClient()
-  const { data: { user } } = await supabaseAuth.auth.getUser()
+  const user = await getAuthenticatedUser()
   if (!user) redirect('/admin/login')
-  if (user.user_metadata?.role !== 'admin') redirect('/portal/dashboard')
+  if (!isAdminUser(user)) redirect('/portal/dashboard')
 
   const supabase = await createServiceRoleClient()
 
@@ -61,7 +61,11 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
     supabase.from('account_applications').select('*').eq('client_id', id).maybeSingle(),
     supabase.from('tickets').select('*').eq('client_id', id).order('created_at', { ascending: false }),
     supabase.from('internal_notes').select('*').eq('client_id', id).order('created_at', { ascending: false }),
-    supabase.from('client_wallets').select('*').eq('client_id', id).maybeSingle(),
+    supabase
+      .from('client_wallets')
+      .select('tron_address, usdt_balance, trx_balance, total_deposited, sweep_locked, last_checked_at')
+      .eq('client_id', id)
+      .maybeSingle(),
   ])
 
   if (!profile) notFound()

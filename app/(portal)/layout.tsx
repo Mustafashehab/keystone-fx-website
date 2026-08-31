@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser, isAdminUser } from '@/lib/auth/guards'
 import { getClientProfile } from '@/lib/dal/clients'
 import { PortalSidebarClient } from '@/components/layout/PortalSidebarClient'
 import { ToastProvider } from '@/components/ui/Toast'
@@ -11,17 +11,13 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createServerSupabaseClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthenticatedUser()
 
   if (!user) {
     redirect('/portal/login')
   }
 
-  if (user.user_metadata?.role === 'admin') {
+  if (isAdminUser(user)) {
     redirect('/admin/dashboard')
   }
 

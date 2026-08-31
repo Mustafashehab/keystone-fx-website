@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatDecimalAmount } from '@/lib/tron/amounts'
 
 interface WalletData {
   tron_address: string
@@ -19,8 +20,8 @@ interface AdminWalletPanelProps {
 export function AdminWalletPanel({ clientId, wallet }: AdminWalletPanelProps) {
   const [sweeping,   setSweeping]   = useState(false)
   const [result,     setResult]     = useState<{
-    usdtAmount?: number
-    trxAmount?: number
+    usdtAmount?: string
+    trxAmount?: string
     usdtTxHash?: string | null
     trxTxHash?: string | null
     error?: string
@@ -38,7 +39,11 @@ export function AdminWalletPanel({ clientId, wallet }: AdminWalletPanelProps) {
       const body = await res.json()
 
       if (!res.ok) {
-        setResult({ error: body.error ?? 'Sweep failed' })
+        setResult({
+          error: body.error ?? 'Sweep failed',
+          usdtTxHash: body.usdtTxHash,
+          usdtAmount: body.usdtAmount,
+        })
         return
       }
 
@@ -102,19 +107,26 @@ export function AdminWalletPanel({ clientId, wallet }: AdminWalletPanelProps) {
               : 'bg-green-50 border-green-200 text-green-700'
           }`}>
             {result.error ? (
-              <p>❌ {result.error}</p>
+              <div className="space-y-1">
+                <p>❌ {result.error}</p>
+                {result.usdtTxHash && (
+                  <a href={`https://tronscan.org/#/transaction/${result.usdtTxHash}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="underline">Review transaction on TronScan</a>
+                )}
+              </div>
             ) : (
               <div className="space-y-1">
                 <p className="font-semibold">✓ Sweep complete</p>
                 {result.usdtTxHash && (
-                  <p>USDT: ${result.usdtAmount?.toFixed(2)} swept
+                  <p>USDT: ${formatDecimalAmount(result.usdtAmount ?? '0')} swept
                     <a href={`https://tronscan.org/#/transaction/${result.usdtTxHash}`}
                       target="_blank" rel="noopener noreferrer"
                       className="ml-1 underline">view tx</a>
                   </p>
                 )}
                 {result.trxTxHash && (
-                  <p>TRX: {result.trxAmount?.toFixed(2)} swept
+                  <p>TRX: {formatDecimalAmount(result.trxAmount ?? '0')} swept
                     <a href={`https://tronscan.org/#/transaction/${result.trxTxHash}`}
                       target="_blank" rel="noopener noreferrer"
                       className="ml-1 underline">view tx</a>
@@ -134,11 +146,11 @@ export function AdminWalletPanel({ clientId, wallet }: AdminWalletPanelProps) {
           disabled={sweeping || wallet.sweep_locked}
           className="w-full py-2.5 rounded-lg text-sm font-semibold bg-[#0f172a] text-white hover:bg-[#1e293b] transition-all disabled:opacity-40"
         >
-          {sweeping ? 'Sweeping…' : 'Sweep All Funds to Master Wallet'}
+          {sweeping ? 'Sweeping…' : 'Sweep Recorded USDT to Master Wallet'}
         </button>
 
         <p className="text-xs text-[#94a3b8] text-center">
-          Moves all USDT and TRX from this wallet to your master wallet
+          Moves recorded USDT to the master wallet. TRX remains for network fees.
         </p>
       </div>
     </div>

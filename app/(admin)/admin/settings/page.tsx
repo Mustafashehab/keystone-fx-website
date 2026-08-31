@@ -22,7 +22,8 @@ export default function AdminSettingsPage() {
   const [savingPwd,       setSavingPwd]       = useState(false)
 
   // Maintenance toggle state
-  const [financialEnabled,   setFinancialEnabled]   = useState(true)
+  const [financialEnabled,   setFinancialEnabled]   = useState(false)
+  const [deploymentGate,     setDeploymentGate]     = useState(false)
   const [loadingToggle,      setLoadingToggle]      = useState(true)
   const [savingToggle,       setSavingToggle]       = useState(false)
 
@@ -36,7 +37,8 @@ export default function AdminSettingsPage() {
       const res = await fetch('/api/admin/settings')
       if (res.ok) {
         const data = await res.json()
-        setFinancialEnabled(data.financial_services_enabled)
+        setFinancialEnabled(data.financial_services_enabled === true)
+        setDeploymentGate(data.deployment_gate_enabled === true)
       }
       setLoadingToggle(false)
     }
@@ -77,12 +79,14 @@ export default function AdminSettingsPage() {
         toastError('Failed', 'Could not update financial services toggle.')
         return
       }
-      setFinancialEnabled(newValue)
+      const data = await res.json()
+      setFinancialEnabled(data.financial_services_enabled === true)
+      setDeploymentGate(data.deployment_gate_enabled === true)
       success(
-        newValue ? 'Financial services enabled' : 'Financial services disabled',
-        newValue
+        data.financial_services_enabled ? 'Financial services enabled' : 'Financial services disabled',
+        data.financial_services_enabled
           ? 'Clients can now deposit and withdraw normally.'
-          : 'Deposit and withdrawal pages now show the WhatsApp support message.'
+          : 'The server-side deployment gate or platform setting is keeping operations disabled.'
       )
     } catch {
       toastError('Network error', 'Could not reach server.')
@@ -112,10 +116,10 @@ export default function AdminSettingsPage() {
             </div>
             <button
               onClick={handleToggleFinancial}
-              disabled={savingToggle || loadingToggle}
+              disabled={savingToggle || loadingToggle || !deploymentGate}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                 financialEnabled ? 'bg-green-500' : 'bg-red-500'
-              } ${savingToggle || loadingToggle ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              } ${savingToggle || loadingToggle || !deploymentGate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -127,6 +131,11 @@ export default function AdminSettingsPage() {
           {!financialEnabled && (
             <p className="text-xs text-amber-600 mt-3 bg-amber-50 px-3 py-2 rounded">
               ⚠ Financial services are OFF. Clients cannot deposit or withdraw until this is re-enabled.
+            </p>
+          )}
+          {!deploymentGate && (
+            <p className="text-xs text-slate-600 mt-3 bg-slate-100 px-3 py-2 rounded">
+              Server deployment gate is OFF. Set FINANCIAL_OPERATIONS_ENABLED=true only after the security review and database migration are complete.
             </p>
           )}
         </Section>

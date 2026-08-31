@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireAuthenticatedApi } from '@/lib/auth/guards'
+import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
 import { checkWalletDeposits } from '@/lib/tron/monitor'
 import { createNotification } from '@/lib/notifications'
+import { formatDecimalAmount } from '@/lib/tron/amounts'
 
 export async function POST(_req: NextRequest) {
   try {
+    const auth = await requireAuthenticatedApi()
+    if (auth.response) return auth.response
+
+    if (!(await areFinancialOperationsEnabled())) {
+      return NextResponse.json({ error: 'Financial operations are disabled' }, { status: 503 })
+    }
+
     const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { data: profile } = await supabase
       .from('client_profiles')
       .select('id, first_name, last_name')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single()
 
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -40,7 +48,7 @@ export async function POST(_req: NextRequest) {
         clientId:  profile.id,
         type:      'deposit_detected',
         title:     'Deposit Detected',
-        message:   `$${totalNewAmount.toFixed(2)} USDT has been detected in your wallet and is being processed.`,
+        message:   `$${formatDecimalAmount(totalNewAmount)} USDT has been detected in your wallet and is being processed.`,
         link:      '/portal/deposit',
       })
 
@@ -49,12 +57,12 @@ export async function POST(_req: NextRequest) {
         clientId:  profile.id,
         type:      'deposit_detected',
         title:     'New Deposit Detected',
-        message:   `${clientName} deposited $${totalNewAmount.toFixed(2)} USDT.`,
+        message:   `${clientName} deposited $${formatDecimalAmount(totalNewAmount)} USDT.`,
         link:      `/admin/clients/${profile.id}`,
       })
     }
 
-    return NextResponse.json({ newDeposits })
+    return NextResponse.json({ newDeposits, totalNewAmount })
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Server error' },

@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { requireAdminApi } from '@/lib/auth/guards'
+import { parseJsonBody } from '@/lib/api/validation'
 import { createNotification } from '@/lib/notifications'
+
+const ticketStatusSchema = z.enum(['open', 'in_progress', 'resolved', 'closed'])
+const replySchema = z.object({
+  ticketId: z.string().uuid(),
+  content: z.string().trim().min(1).max(5000),
+  updateStatusTo: ticketStatusSchema.optional(),
+})
+const updateTicketSchema = z.object({
+  ticketId: z.string().uuid(),
+  status: ticketStatusSchema,
+})
 
 export async function POST(req: NextRequest) {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (user.user_metadata?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
 
-    const { ticketId, content, updateStatusTo } = await req.json()
-
-    if (!ticketId || !content?.trim()) {
-      return NextResponse.json({ error: 'ticketId and content are required' }, { status: 400 })
-    }
+    const parsed = await parseJsonBody(req, replySchema)
+    if (parsed.response) return parsed.response
+    const { ticketId, content, updateStatusTo } = parsed.data
 
     const supabase = await createServiceRoleClient()
 
@@ -23,7 +31,7 @@ export async function POST(req: NextRequest) {
       .from('ticket_messages')
       .insert({
         ticket_id:   ticketId,
-        sender_id:   user.id,
+        sender_id:   auth.user.id,
         sender_role: 'admin',
         content:     content.trim(),
       })
@@ -72,18 +80,12 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (user.user_metadata?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
 
-    const { ticketId, status } = await req.json()
-
-    if (!ticketId || !status) {
-      return NextResponse.json({ error: 'ticketId and status are required' }, { status: 400 })
-    }
+    const parsed = await parseJsonBody(req, updateTicketSchema)
+    if (parsed.response) return parsed.response
+    const { ticketId, status } = parsed.data
 
     const supabase = await createServiceRoleClient()
 

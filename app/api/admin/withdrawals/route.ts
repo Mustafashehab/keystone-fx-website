@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { requireAdminApi } from '@/lib/auth/guards'
+import { parseJsonBody } from '@/lib/api/validation'
+import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
 import { createNotification } from '@/lib/notifications'
 
 const ATTESTATION_WINDOW_MS = 5 * 60 * 1000
+const reviewWithdrawalSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(['approved', 'rejected']),
+  rejectionReason: z.string().trim().max(2000).optional().nullable(),
+})
 
 export async function GET() {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json([], { status: 401 })
-    if (user.user_metadata?.role !== 'admin') return NextResponse.json([], { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
 
     const supabase = await createServiceRoleClient()
     const { data } = await supabase
@@ -30,18 +37,16 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (user.user_metadata?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
+
+    if (!(await areFinancialOperationsEnabled())) {
+      return NextResponse.json({ error: 'Financial operations are disabled' }, { status: 503 })
     }
 
-    const { id, status, rejectionReason } = await req.json()
-
-    if (!['approved', 'rejected'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status.' }, { status: 400 })
-    }
+    const parsed = await parseJsonBody(req, reviewWithdrawalSchema)
+    if (parsed.response) return parsed.response
+    const { id, status, rejectionReason } = parsed.data
 
     const supabase = await createServiceRoleClient()
 
@@ -84,7 +89,7 @@ export async function PATCH(req: NextRequest) {
         .from('withdrawal_attestations')
         .select('id, attested_balance, attested_at, used')
         .eq('withdrawal_id', id)
-        .eq('admin_id', user.id)
+        .eq('admin_id', auth.user.id)
         .single()
 
       if (attestFetchError || !attestation) {
@@ -112,7 +117,7 @@ export async function PATCH(req: NextRequest) {
 
       const { error: rpcError } = await supabase.rpc('approve_withdrawal', {
         p_withdrawal_id:    id,
-        p_reviewer_id:      user.id,
+        p_reviewer_id:      auth.user.id,
         p_attested_balance: attestation.attested_balance,
         p_attested_at:      attestation.attested_at,
       })
@@ -123,6 +128,18 @@ export async function PATCH(req: NextRequest) {
         }
         if (rpcError.message?.includes('attestation_expired')) {
           return NextResponse.json({ error: 'Attestation expired during approval.' }, { status: 400 })
+        }
+        if (rpcError.message?.includes('insufficient_attested_balance')) {
+          return NextResponse.json(
+            { error: 'Attested MT5 free margin is below the withdrawal amount.' },
+            { status: 400 }
+          )
+        }
+        if (rpcError.message?.includes('attestation_mismatch')) {
+          return NextResponse.json(
+            { error: 'Attestation changed during approval. Please attest again.' },
+            { status: 409 }
+          )
         }
         return NextResponse.json({ error: rpcError.message }, { status: 500 })
       }
@@ -147,7 +164,7 @@ export async function PATCH(req: NextRequest) {
 
       const { error: rpcError } = await supabase.rpc('reject_withdrawal', {
         p_withdrawal_id:    id,
-        p_reviewer_id:      user.id,
+        p_reviewer_id:      auth.user.id,
         p_rejection_reason: rejectionReason.trim(),
       })
 

@@ -1,14 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser, isAdminUser } from '@/lib/auth/guards'
 import { AdminSidebarClient } from '@/components/layout/AdminSidebarClient'
 import { ToastProvider } from '@/components/ui/Toast'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthenticatedUser()
 
   if (!user) redirect('/admin/login')
-  if (user.user_metadata?.role !== 'admin') redirect('/portal/dashboard')
+  if (!isAdminUser(user)) redirect('/portal/dashboard')
 
   const adminName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Admin'
 

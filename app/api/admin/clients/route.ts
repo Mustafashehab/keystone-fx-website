@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { requireAdminApi } from '@/lib/auth/guards'
 
 export async function GET() {
   try {
-    const supabaseAuth = await createServerSupabaseClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    if (!user) return NextResponse.json([], { status: 401 })
-    if (user.user_metadata?.role !== 'admin') return NextResponse.json([], { status: 403 })
+    const auth = await requireAdminApi()
+    if (auth.response) return auth.response
 
     const supabase = await createServiceRoleClient()
     const { data } = await supabase

@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser, isAdminUser } from '@/lib/auth/guards'
 import { AdminHeader } from '@/components/layout/AdminHeader'
 import { formatDateTime } from '@/lib/utils'
 import { KYCReviewActions } from '@/components/admin/KYCReviewActions'
@@ -20,10 +21,9 @@ const KYC_LABELS: Record<string, string> = {
 export default async function AdminKYCDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const supabaseAuth = await createServerSupabaseClient()
-  const { data: { user } } = await supabaseAuth.auth.getUser()
+  const user = await getAuthenticatedUser()
   if (!user) redirect('/admin/login')
-  if (user.user_metadata?.role !== 'admin') redirect('/portal/dashboard')
+  if (!isAdminUser(user)) redirect('/portal/dashboard')
 
   const supabase = await createServiceRoleClient()
 
