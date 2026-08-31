@@ -1,6 +1,32 @@
-// @ts-nocheck
 import { createClient } from '@supabase/supabase-js'
-import { TRON_CONFIG } from './config'
+import { atomicToDecimalString, parseAtomicUnits } from './amounts.ts'
+import { TRON_CONFIG } from './config.ts'
+
+const TRONGRID_PAGE_LIMIT = 200
+const MAX_PAGES_PER_SCAN = 10
+const CHECKPOINT_OVERLAP_MS = 10 * 60 * 1000
+const TX_HASH_PATTERN = /^[0-9a-fA-F]{64}$/
+
+interface TronGridTrc20Transaction {
+  transaction_id?: unknown
+  from?: unknown
+  to?: unknown
+  type?: unknown
+  value?: unknown
+  token_info?: { address?: unknown }
+}
+
+interface TronGridTrc20Response {
+  data?: unknown
+  success?: unknown
+  meta?: { fingerprint?: unknown }
+}
+
+interface DepositScanResult {
+  newDeposits: number
+  totalNewAmount: string
+  error: string | null
+}
 
 function getServiceClient() {
   return createClient(
@@ -10,162 +36,164 @@ function getServiceClient() {
   )
 }
 
-export async function checkWalletDeposits(
-  clientId: string,
-  walletAddress: string
-): Promise<{ newDeposits: number; totalNewAmount: number; error: string | null }> {
-  try {
-    const supabase = getServiceClient()
+export function getCheckpointTimestamp(lastCheckedAt: unknown): number | null {
+  if (typeof lastCheckedAt !== 'string') return null
+  const timestamp = Date.parse(lastCheckedAt)
+  if (!Number.isFinite(timestamp)) return null
+  return Math.max(0, timestamp - CHECKPOINT_OVERLAP_MS)
+}
 
-    const { data: wallet } = await supabase
-      .from('client_wallets')
-      .select('id, usdt_balance, total_deposited')
-      .eq('client_id', clientId)
-      .single()
+export async function fetchConfirmedTransfers(
+  walletAddress: string,
+  minTimestamp: number | null
+): Promise<TronGridTrc20Transaction[]> {
+  const transactions: TronGridTrc20Transaction[] = []
+  const seenFingerprints = new Set<string>()
+  let fingerprint: string | null = null
 
-    if (!wallet) return { newDeposits: 0, totalNewAmount: 0, error: 'Wallet not found' }
+  for (let page = 0; page < MAX_PAGES_PER_SCAN; page += 1) {
+    const params = new URLSearchParams({
+      contract_address: TRON_CONFIG.usdtContract,
+      limit: String(TRONGRID_PAGE_LIMIT),
+      only_confirmed: 'true',
+      only_to: 'true',
+      order_by: 'block_timestamp,asc',
+    })
+    if (minTimestamp !== null) params.set('min_timestamp', String(minTimestamp))
+    if (fingerprint) params.set('fingerprint', fingerprint)
 
     const response = await fetch(
-      `https://api.trongrid.io/v1/accounts/${walletAddress}/transactions/trc20?contract_address=${TRON_CONFIG.usdtContract}&limit=20&only_confirmed=true`,
+      `${TRON_CONFIG.fullHost}/v1/accounts/${encodeURIComponent(walletAddress)}/transactions/trc20?${params}`,
       { headers: { 'TRON-PRO-API-KEY': TRON_CONFIG.apiKey } }
     )
 
-    if (!response.ok) throw new Error('TronGrid API error')
+    if (!response.ok) {
+      throw new Error(`TronGrid deposit query failed with HTTP ${response.status}`)
+    }
 
-    const data = await response.json()
-    const transactions = data.data ?? []
+    const body = await response.json() as TronGridTrc20Response
+    if (body.success === false || !Array.isArray(body.data)) {
+      throw new Error('TronGrid returned an invalid deposit response')
+    }
+
+    transactions.push(...body.data as TronGridTrc20Transaction[])
+
+    const nextFingerprint = typeof body.meta?.fingerprint === 'string'
+      ? body.meta.fingerprint
+      : null
+
+    if (!nextFingerprint) return transactions
+    if (seenFingerprints.has(nextFingerprint)) {
+      throw new Error('TronGrid returned a repeated pagination cursor')
+    }
+    seenFingerprints.add(nextFingerprint)
+    fingerprint = nextFingerprint
+  }
+
+  throw new Error(
+    `Deposit scan exceeded ${TRONGRID_PAGE_LIMIT * MAX_PAGES_PER_SCAN} confirmed transfers; checkpoint was not advanced`
+  )
+}
+
+export async function checkWalletDeposits(
+  clientId: string,
+  walletAddress: string
+): Promise<DepositScanResult> {
+  try {
+    const supabase = getServiceClient()
+
+    const { data: wallet, error: walletError } = await supabase
+      .from('client_wallets')
+      .select('id, tron_address, last_checked_at, sweep_locked')
+      .eq('client_id', clientId)
+      .single()
+
+    if (walletError || !wallet) {
+      return { newDeposits: 0, totalNewAmount: '0.000000', error: 'Wallet not found' }
+    }
+    if (wallet.tron_address !== walletAddress) {
+      return { newDeposits: 0, totalNewAmount: '0.000000', error: 'Wallet address mismatch' }
+    }
+    if (wallet.sweep_locked) {
+      return { newDeposits: 0, totalNewAmount: '0.000000', error: 'Wallet sweep is in progress' }
+    }
+
+    const transactions = await fetchConfirmedTransfers(
+      walletAddress,
+      getCheckpointTimestamp(wallet.last_checked_at)
+    )
 
     let newDeposits = 0
-    let totalNewAmount = 0
+    let totalNewAtomic = 0n
+    const seenTransactionIds = new Set<string>()
 
-    // First pass: collect all new transactions
-    const newTxs: { txHash: string; amount: number }[] = []
     for (const tx of transactions) {
-      if (tx.to !== walletAddress) continue
+      if (tx.to !== walletAddress || tx.type !== 'Transfer') continue
+      if (tx.token_info?.address !== TRON_CONFIG.usdtContract) continue
 
-      const txHash = tx.transaction_id
-      const amount = Number(tx.value) / 1_000_000
+      const txHash = typeof tx.transaction_id === 'string' ? tx.transaction_id : ''
+      if (!TX_HASH_PATTERN.test(txHash) || seenTransactionIds.has(txHash)) continue
+      seenTransactionIds.add(txHash)
 
-      const { data: existing } = await supabase
-        .from('deposit_transactions')
-        .select('id')
-        .eq('tx_hash', txHash)
-        .maybeSingle()
+      const amountAtomic = parseAtomicUnits(tx.value)
+      if (amountAtomic <= 0n) continue
+      const amount = atomicToDecimalString(amountAtomic)
 
-      if (!existing) {
-        newTxs.push({ txHash, amount })
-        totalNewAmount += amount
-      }
-    }
-
-    if (newTxs.length === 0) {
-      await supabase
-        .from('client_wallets')
-        .update({ last_checked_at: new Date().toISOString() })
-        .eq('client_id', clientId)
-      return { newDeposits: 0, totalNewAmount: 0, error: null }
-    }
-
-    // Second pass: record each new deposit atomically via rpc
-    let runningBalance = Number(wallet.usdt_balance ?? 0)
-    let runningTotal   = Number(wallet.total_deposited ?? 0)
-
-    for (const { txHash, amount } of newTxs) {
-      runningBalance += amount
-      runningTotal   += amount
-
-      const { error: rpcError } = await supabase.rpc('record_deposit_detected', {
-        p_client_id:   clientId,
-        p_wallet_id:   wallet.id,
-        p_tx_hash:     txHash,
-        p_amount:      amount,
-        p_new_balance: runningBalance,
-        p_new_total:   runningTotal,
-      })
+      const { data: recorded, error: rpcError } = await supabase.rpc(
+        'record_deposit_detected',
+        {
+          p_client_id: clientId,
+          p_wallet_id: wallet.id,
+          p_tx_hash: txHash.toLowerCase(),
+          p_amount: amount,
+        }
+      )
 
       if (rpcError) {
-        if (rpcError.message?.includes('unique') || rpcError.message?.includes('duplicate')) {
-          console.warn(`[monitor] Duplicate deposit skipped: ${txHash}`)
-          runningBalance -= amount
-          runningTotal   -= amount
-          continue
-        }
         console.error(`[monitor] Failed to record deposit ${txHash}:`, rpcError.message)
-        continue
+        throw new Error('A confirmed deposit could not be recorded; checkpoint was not advanced')
       }
 
-      newDeposits++
-    }
-
-    // ── TRX SEED on first deposit ─────────────────────────────────────────
-    if (newDeposits > 0) {
-      const { count: totalDepositCount } = await supabase
-        .from('deposit_transactions')
-        .select('id', { count: 'exact', head: true })
-        .eq('wallet_id', wallet.id)
-
-      const isFirstDeposit = (totalDepositCount ?? 0) <= newDeposits
-
-      if (isFirstDeposit) {
-        const { seedClientWalletTrx } = await import('./seed')
-        const { txHash: seedTxHash, error: seedError } = await seedClientWalletTrx(walletAddress)
-
-        if (seedError) {
-          console.error('[monitor] TRX seed failed:', seedError)
-          await supabase.from('notifications').insert({
-            recipient: 'admin',
-            client_id: clientId,
-            type:      'wallet.trx_seed_failed',
-            title:     'TRX Seed Failed',
-            message:   `Failed to auto-seed 14 TRX to ${walletAddress}. Manual action required. Error: ${seedError}`,
-            link:      `/admin/clients/${clientId}`,
-          })
-        } else {
-          console.log('[monitor] TRX seed sent:', seedTxHash)
-          await supabase.from('financial_events').insert({
-            event_type:      'wallet.trx_seeded',
-            client_id:       clientId,
-            actor_id:        null,
-            actor_role:      'system',
-            entity_type:     'client_wallet',
-            entity_id:       wallet.id,
-            amount:          14,
-            currency:        'TRX',
-            metadata: {
-              seed_tx_hash:   seedTxHash,
-              client_address: walletAddress,
-              master_wallet:  TRON_CONFIG.masterWallet,
-              reason:         'Auto-seed on first deposit for sweep bandwidth',
-            },
-            idempotency_key: `trx_seed:${wallet.id}:first_deposit`,
-          })
-        }
+      if (recorded === true) {
+        newDeposits += 1
+        totalNewAtomic += amountAtomic
       }
     }
-    // ── END TRX SEED ──────────────────────────────────────────────────────
 
-    return { newDeposits, totalNewAmount, error: null }
+    const { data: checkpoint, error: checkpointError } = await supabase
+      .from('client_wallets')
+      .update({ last_checked_at: new Date().toISOString() })
+      .eq('id', wallet.id)
+      .eq('sweep_locked', false)
+      .select('id')
+      .maybeSingle()
 
+    if (checkpointError || !checkpoint) {
+      throw new Error('Deposit checkpoint could not be updated')
+    }
+
+    return {
+      newDeposits,
+      totalNewAmount: atomicToDecimalString(totalNewAtomic),
+      error: null,
+    }
   } catch (err: unknown) {
     return {
       newDeposits: 0,
-      totalNewAmount: 0,
+      totalNewAmount: '0.000000',
       error: err instanceof Error ? err.message : 'Monitor failed',
     }
   }
 }
 
-export async function getUSDTBalance(address: string): Promise<number> {
-  try {
-    const response = await fetch(
-      `https://api.trongrid.io/v1/accounts/${address}/tokens?token_id=${TRON_CONFIG.usdtContract}`,
-      { headers: { 'TRON-PRO-API-KEY': TRON_CONFIG.apiKey } }
-    )
-    const data = await response.json()
-    const token = data.data?.[0]
-    if (!token) return 0
-    return Number(token.balance) / 1_000_000
-  } catch {
-    return 0
-  }
+export async function getUSDTBalance(address: string): Promise<string> {
+  const response = await fetch(
+    `${TRON_CONFIG.fullHost}/v1/accounts/${encodeURIComponent(address)}/tokens?token_id=${encodeURIComponent(TRON_CONFIG.usdtContract)}`,
+    { headers: { 'TRON-PRO-API-KEY': TRON_CONFIG.apiKey } }
+  )
+  if (!response.ok) throw new Error(`TronGrid balance query failed with HTTP ${response.status}`)
+
+  const body = await response.json() as { data?: Array<{ balance?: unknown }> }
+  const token = Array.isArray(body.data) ? body.data[0] : undefined
+  return atomicToDecimalString(parseAtomicUnits(token?.balance ?? '0'))
 }

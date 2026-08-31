@@ -31,49 +31,47 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createServiceRoleClient()
 
-    // Verify the withdrawal exists and is still pending
-    const { data: withdrawal, error: fetchError } = await supabase
-      .from('withdrawal_requests')
-      .select('id, status, amount, client_id')
-      .eq('id', withdrawalId)
-      .single()
-
-    if (fetchError || !withdrawal) {
-      return NextResponse.json({ error: 'Withdrawal not found' }, { status: 404 })
-    }
-
-    if (withdrawal.status !== 'pending') {
-      return NextResponse.json(
-        { error: `Cannot attest a ${withdrawal.status} withdrawal. Only pending requests can be attested.` },
-        { status: 409 }
-      )
-    }
-
-    // Upsert the attestation — if admin re-attests (e.g. entered wrong value),
-    // the previous attestation is replaced with the fresh one.
-    // DB column is attested_balance — stores the free margin value.
-    const now = new Date().toISOString()
-    const { error: attestError } = await supabase
-      .from('withdrawal_attestations')
-      .upsert(
-        {
-          withdrawal_id:    withdrawalId,
-          admin_id:         auth.user.id,
-          attested_balance: freeMargin,
-          attested_at:      now,
-          used:             false,
-        },
-        { onConflict: 'withdrawal_id,admin_id' }
-      )
+    // The RPC locks the withdrawal and records the attestation atomically, so
+    // an approval cannot race with a stale re-attestation.
+    const { data: attestedAt, error: attestError } = await supabase.rpc(
+      'record_withdrawal_attestation',
+      {
+        p_withdrawal_id: withdrawalId,
+        p_admin_id: auth.user.id,
+        p_attested_balance: freeMargin,
+      }
+    )
 
     if (attestError) {
+      if (attestError.message?.includes('withdrawal_not_found')) {
+        return NextResponse.json({ error: 'Withdrawal not found' }, { status: 404 })
+      }
+      if (attestError.message?.includes('withdrawal_not_pending')) {
+        return NextResponse.json(
+          { error: 'Only pending withdrawals can be attested.' },
+          { status: 409 }
+        )
+      }
+      if (attestError.message?.includes('insufficient_attested_balance')) {
+        return NextResponse.json(
+          {
+            error: 'Attested MT5 free margin is below the requested withdrawal amount.',
+            code: 'insufficient_attested_balance',
+          },
+          { status: 400 }
+        )
+      }
       return NextResponse.json({ error: attestError.message }, { status: 500 })
+    }
+
+    if (typeof attestedAt !== 'string') {
+      return NextResponse.json({ error: 'Invalid attestation response' }, { status: 500 })
     }
 
     return NextResponse.json({
       success:          true,
-      attestedAt:       now,
-      expiresAt:        new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      attestedAt,
+      expiresAt:        new Date(new Date(attestedAt).getTime() + 5 * 60 * 1000).toISOString(),
       withdrawalId,
       attestedFreeMargin: freeMargin,
     })

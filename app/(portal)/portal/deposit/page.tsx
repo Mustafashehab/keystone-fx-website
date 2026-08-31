@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
 import { usePortalI18n } from '@/lib/portal-i18n'
+import { formatDecimalAmount } from '@/lib/tron/amounts'
 
 const WHATSAPP_LINK = 'https://wa.me/447511648370'
 
@@ -212,7 +213,7 @@ export default function DepositPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       if (data.newDeposits > 0) {
-        success('Deposit detected', `${data.newDeposits} new deposit(s) totalling $${data.totalNewAmount.toFixed(2)} USDT.`)
+        success('Deposit detected', `${data.newDeposits} new deposit(s) totalling $${formatDecimalAmount(String(data.totalNewAmount))} USDT.`)
         await loadWallet()
       } else {
         success('No new deposits', 'No new transactions found.')

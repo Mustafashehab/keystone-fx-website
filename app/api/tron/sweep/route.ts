@@ -7,6 +7,8 @@ import { sweepToMaster } from '@/lib/tron/sweep'
 
 const sweepSchema = z.object({ clientId: z.string().uuid() })
 
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireAdminApi()
@@ -23,7 +25,15 @@ export async function POST(req: NextRequest) {
     const result = await sweepToMaster(clientId)
 
     if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: result.error,
+          pendingReview: result.pendingReview,
+          usdtTxHash: result.usdtTxHash,
+          usdtAmount: result.usdtAmount,
+        },
+        { status: result.pendingReview ? 409 : 500 }
+      )
     }
 
     return NextResponse.json({
@@ -33,6 +43,7 @@ export async function POST(req: NextRequest) {
       usdtAmount: result.usdtAmount,
       trxAmount:  result.trxAmount,
       confirmed:  result.confirmed,
+      pendingReview: result.pendingReview,
     })
   } catch (err: unknown) {
     return NextResponse.json(

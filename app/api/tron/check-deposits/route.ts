@@ -4,6 +4,7 @@ import { requireAuthenticatedApi } from '@/lib/auth/guards'
 import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
 import { checkWalletDeposits } from '@/lib/tron/monitor'
 import { createNotification } from '@/lib/notifications'
+import { formatDecimalAmount } from '@/lib/tron/amounts'
 
 export async function POST(_req: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function POST(_req: NextRequest) {
         clientId:  profile.id,
         type:      'deposit_detected',
         title:     'Deposit Detected',
-        message:   `$${totalNewAmount.toFixed(2)} USDT has been detected in your wallet and is being processed.`,
+        message:   `$${formatDecimalAmount(totalNewAmount)} USDT has been detected in your wallet and is being processed.`,
         link:      '/portal/deposit',
       })
 
@@ -56,12 +57,12 @@ export async function POST(_req: NextRequest) {
         clientId:  profile.id,
         type:      'deposit_detected',
         title:     'New Deposit Detected',
-        message:   `${clientName} deposited $${totalNewAmount.toFixed(2)} USDT.`,
+        message:   `${clientName} deposited $${formatDecimalAmount(totalNewAmount)} USDT.`,
         link:      `/admin/clients/${profile.id}`,
       })
     }
 
-    return NextResponse.json({ newDeposits })
+    return NextResponse.json({ newDeposits, totalNewAmount })
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Server error' },

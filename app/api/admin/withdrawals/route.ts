@@ -129,6 +129,18 @@ export async function PATCH(req: NextRequest) {
         if (rpcError.message?.includes('attestation_expired')) {
           return NextResponse.json({ error: 'Attestation expired during approval.' }, { status: 400 })
         }
+        if (rpcError.message?.includes('insufficient_attested_balance')) {
+          return NextResponse.json(
+            { error: 'Attested MT5 free margin is below the withdrawal amount.' },
+            { status: 400 }
+          )
+        }
+        if (rpcError.message?.includes('attestation_mismatch')) {
+          return NextResponse.json(
+            { error: 'Attestation changed during approval. Please attest again.' },
+            { status: 409 }
+          )
+        }
         return NextResponse.json({ error: rpcError.message }, { status: 500 })
       }
 

@@ -3,6 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { checkWalletDeposits } from '@/lib/tron/monitor'
 import { createNotification } from '@/lib/notifications'
 import { areFinancialOperationsEnabled } from '@/lib/financial/operations'
+import { formatDecimalAmount } from '@/lib/tron/amounts'
 
 export const maxDuration = 60 // seconds — Vercel max for hobby plan
 
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
           clientId:  wallet.client_id,
           type:      'deposit_detected',
           title:     'Deposit Detected',
-          message:   `$${result.totalNewAmount.toFixed(2)} USDT has been detected in your wallet and is being processed.`,
+          message:   `$${formatDecimalAmount(result.totalNewAmount)} USDT has been detected in your wallet and is being processed.`,
           link:      '/portal/deposit',
         })
 
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
           clientId:  wallet.client_id,
           type:      'deposit_detected',
           title:     'New Deposit Detected',
-          message:   `${clientName} deposited $${result.totalNewAmount.toFixed(2)} USDT.`,
+          message:   `${clientName} deposited $${formatDecimalAmount(result.totalNewAmount)} USDT.`,
           link:      `/admin/clients/${wallet.client_id}`,
         })
       }
