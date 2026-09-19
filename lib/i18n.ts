@@ -150,38 +150,38 @@ const dict = {
         "Regulatory compliance"
       ],
       stats: [
-        { value: "50K+", label: "Active Traders" },
-        { value: "$2B+", label: "Monthly Volume" },
-        { value: "8ms", label: "Avg Execution" },
-        { value: "99.99%", label: "Uptime" }
+        { value: "Digital", label: "Software Solutions" },
+        { value: "Secure", label: "Professional Workflows" },
+        { value: "Responsive", label: "Technical Support" },
+        { value: "Reliable", label: "Service Delivery" }
       ],
       whyUs: {
         title: "Why Choose Keystone FX",
         reasons: [
           {
             icon: "⚡",
-            title: "Lightning-Fast Execution",
-            description: "Our infrastructure is built for speed. Average execution times under 10ms ensure you never miss a trading opportunity."
+            title: "Reliable Delivery",
+            description: "Our technical workflows are designed for clarity, consistency, and professional use."
           },
           {
             icon: "🔒",
-            title: "Bank-Grade Security",
-            description: "Client funds held in segregated accounts with tier-1 banks. Your capital security is our top priority."
+            title: "Security-Conscious Design",
+            description: "Our software approach prioritizes responsible access controls and operational resilience."
           },
           {
             icon: "📊",
-            title: "Institutional Liquidity",
-            description: "Access deep liquidity pools from multiple tier-1 providers for the tightest spreads and best execution."
+            title: "Platform Support",
+            description: "We assist with approved third-party platform configuration and technical connectivity."
           }
         ]
       },
       regulation: {
-        title: "Regulated & Trusted",
-        text: "Keystone FX operates under strict regulatory oversight to ensure the highest standards of client protection and operational integrity.",
+        title: "Technology & Support",
+        text: "Keystone FX provides software solutions and technical support for professional business environments.",
         badges: [
-          "FCA Regulated",
-          "CySEC Licensed",
-          "ASIC Authorized"
+          "Software Solutions",
+          "Platform Support",
+          "Technical Assistance"
         ]
       },
       cta: {
@@ -211,12 +211,12 @@ const dict = {
           description: "Trade on major financial exchanges worldwide with secure accounts accessible from any device, anytime."
         },
         secure: {
-          title: "Bank-Level Security",
-          description: "Your funds are protected in segregated tier-1 bank accounts with advanced encryption and security protocols."
+          title: "Security-Conscious Design",
+          description: "Our software approach prioritizes responsible access controls and operational resilience."
         },
         fast: {
-          title: "Lightning Execution",
-          description: "Experience average execution speeds of 8ms with our advanced infrastructure and deep liquidity pools."
+          title: "Responsive Support",
+          description: "Receive practical technical assistance for approved platform workflows."
         }
       },
       steps: {
@@ -224,8 +224,8 @@ const dict = {
         subtitle: "Start your trading journey today with our seamless onboarding process",
         list: [
           {
-            title: "Create Your Account",
-            description: "Quick registration in minutes. We'll ask for basic details to set up your professional trading account."
+            title: "Discuss Your Requirements",
+            description: "Contact us to discuss a software or technical support requirement."
           },
           {
             title: "Fund Your Account",
@@ -494,42 +494,42 @@ const dict = {
       values: [
         "الشفافية في جميع العمليات",
         "تكنولوجيا التنفيذ المتطورة",
-        "أمان أموال العملاء",
-        "الامتثال التنظيمي"
+        "تصميم يراعي الأمان",
+        "عمليات مسؤولة"
       ],
       stats: [
-        { value: "50K+", label: "متداول نشط" },
-        { value: "$2B+", label: "الحجم الشهري" },
-        { value: "8ms", label: "متوسط التنفيذ" },
-        { value: "99.99%", label: "وقت التشغيل" }
+        { value: "رقمية", label: "حلول برمجية" },
+        { value: "آمنة", label: "سير عمل مهني" },
+        { value: "سريعة", label: "دعم تقني" },
+        { value: "موثوقة", label: "تقديم الخدمة" }
       ],
       whyUs: {
         title: "لماذا تختار Keystone FX",
         reasons: [
           {
             icon: "⚡",
-            title: "تنفيذ سريع البرق",
-            description: "بنيتنا التحتية مبنية للسرعة. متوسط أوقات التنفيذ أقل من 10 مللي ثانية يضمن عدم تفويت أي فرصة تداول."
+            title: "تقديم موثوق",
+            description: "تم تصميم سير العمل التقني لدينا للوضوح والاتساق والاستخدام المهني."
           },
           {
             icon: "🔒",
-            title: "أمان على مستوى البنوك",
-            description: "يتم الاحتفاظ بأموال العملاء في حسابات منفصلة لدى بنوك من الدرجة الأولى. أمان رأس مالك هو أولويتنا القصوى."
+            title: "تصميم يراعي الأمان",
+            description: "يركز نهجنا البرمجي على ضوابط الوصول المسؤولة والمرونة التشغيلية."
           },
           {
             icon: "📊",
-            title: "السيولة المؤسسية",
-            description: "الوصول إلى مجمعات سيولة عميقة من مزودين متعددين من الدرجة الأولى للحصول على أضيق فروقات الأسعار وأفضل تنفيذ."
+            title: "دعم المنصات",
+            description: "نساعد في تهيئة المنصات المعتمدة والاتصال التقني."
           }
         ]
       },
       regulation: {
-        title: "منظمة وموثوقة",
-        text: "تعمل Keystone FX تحت إشراف تنظيمي صارم لضمان أعلى معايير حماية العملاء والنزاهة التشغيلية.",
+        title: "التكنولوجيا والدعم",
+        text: "تقدم Keystone FX حلولاً برمجية ودعماً تقنياً لبيئات الأعمال المهنية.",
         badges: [
-          "منظمة من FCA",
-          "مرخصة من CySEC",
-          "مصرح بها من ASIC"
+          "حلول برمجية",
+          "دعم المنصات",
+          "مساعدة تقنية"
         ]
       },
       cta: {
@@ -846,38 +846,38 @@ const dict = {
         "监管合规"
       ],
       stats: [
-        { value: "50K+", label: "活跃交易者" },
-        { value: "$2B+", label: "月交易量" },
-        { value: "8ms", label: "平均执行" },
-        { value: "99.99%", label: "正常运行时间" }
+        { value: "数字化", label: "软件解决方案" },
+        { value: "安全", label: "专业工作流程" },
+        { value: "响应", label: "技术支持" },
+        { value: "可靠", label: "服务交付" }
       ],
       whyUs: {
         title: "为什么选择 Keystone FX",
         reasons: [
           {
             icon: "⚡",
-            title: "闪电般的执行速度",
-            description: "我们的基础设施专为速度而打造。平均执行时间低于10毫秒，确保您不会错过任何交易机会。"
+            title: "可靠交付",
+            description: "我们的技术工作流程专为清晰、一致和专业使用而设计。"
           },
           {
             icon: "🔒",
-            title: "银行级安全",
-            description: "客户资金存放在一级银行的独立账户中。您的资本安全是我们的首要任务。"
+            title: "注重安全的设计",
+            description: "我们的软件方法重视负责任的访问控制和运营韧性。"
           },
           {
             icon: "📊",
-            title: "机构流动性",
-            description: "从多个一级供应商访问深度流动性池，获得最紧密的点差和最佳执行。"
+            title: "平台支持",
+            description: "我们协助获得批准的第三方平台配置和技术连接。"
           }
         ]
       },
       regulation: {
-        title: "受监管且值得信赖",
-        text: "Keystone FX 在严格的监管监督下运营，以确保最高标准的客户保护和运营诚信。",
+        title: "技术与支持",
+        text: "Keystone FX 为专业商业环境提供软件解决方案和技术支持。",
         badges: [
-          "FCA 监管",
-          "CySEC 许可",
-          "ASIC 授权"
+          "软件解决方案",
+          "平台支持",
+          "技术协助"
         ]
       },
       cta: {
@@ -907,12 +907,12 @@ const dict = {
           description: "在全球主要金融交易所进行交易，使用可从任何设备随时访问的安全账户。"
         },
         secure: {
-          title: "银行级安全",
-          description: "您的资金受到一级银行独立账户的保护，配备先进的加密和安全协议。"
+          title: "注重安全的设计",
+          description: "我们的软件方法重视负责任的访问控制和运营韧性。"
         },
         fast: {
-          title: "闪电执行",
-          description: "通过我们的先进基础设施和深度流动性池体验平均8毫秒的执行速度。"
+          title: "响应式支持",
+          description: "为获得批准的平台工作流程提供实用的技术协助。"
         }
       },
       steps: {
