@@ -47,7 +47,7 @@ export default function NavBar() {
               KEYSTONE <span className="text-yellow-600">FX</span>
             </div>
             <div className="text-[9px] md:text-[11px] tracking-widest text-gray-500">
-              FOREX BROKERAGE
+              TECHNOLOGY &amp; SUPPORT
             </div>
           </div>
         </Link>

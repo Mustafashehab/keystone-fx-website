@@ -20,7 +20,7 @@ export default function PartnershipHeroStrip({
               Strategic Collaboration
             </p>
             <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              Trusted Infrastructure. Institutional Backing.
+              Connected Technology. Operational Collaboration.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
               Keystone FX operates as an execution and technology layer,

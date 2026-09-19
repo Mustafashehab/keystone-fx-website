@@ -1,4 +1,11 @@
 User-agent: *
-Allow: /
+Allow: /$
+Allow: /en$
+Disallow: /portal/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /ar/
+Disallow: /zh/
+Disallow: /en/
 
 Sitemap: https://keystone-fx.com/sitemap.xml

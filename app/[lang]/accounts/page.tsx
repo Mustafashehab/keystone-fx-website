@@ -54,10 +54,10 @@ export default async function Accounts({ params }: { params: Promise<{ lang: Lan
             </Link>
           </div>
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center"><div className="text-4xl font-bold text-yellow-400 mb-2">50K+</div><div className="text-sm text-slate-400">{t(lang, "accounts.hero.traders")}</div></div>
-            <div className="text-center"><div className="text-4xl font-bold text-yellow-400 mb-2">$2B+</div><div className="text-sm text-slate-400">{t(lang, "accounts.hero.volume")}</div></div>
-            <div className="text-center"><div className="text-4xl font-bold text-yellow-400 mb-2">8ms</div><div className="text-sm text-slate-400">{t(lang, "accounts.hero.execution")}</div></div>
-            <div className="text-center"><div className="text-4xl font-bold text-yellow-400 mb-2">24/6</div><div className="text-sm text-slate-400">{t(lang, "accounts.hero.support")}</div></div>
+            <div className="text-center"><div className="text-2xl font-bold text-yellow-400 mb-2">Digital</div><div className="text-sm text-slate-400">Software solutions</div></div>
+            <div className="text-center"><div className="text-2xl font-bold text-yellow-400 mb-2">Secure</div><div className="text-sm text-slate-400">Professional workflows</div></div>
+            <div className="text-center"><div className="text-2xl font-bold text-yellow-400 mb-2">Responsive</div><div className="text-sm text-slate-400">Technical support</div></div>
+            <div className="text-center"><div className="text-2xl font-bold text-yellow-400 mb-2">Reliable</div><div className="text-sm text-slate-400">Service delivery</div></div>
           </div>
         </div>
       </section>
