@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const services = [
@@ -31,13 +32,17 @@ const workflow = [
 function BrandMark({ small = false }: { small?: boolean }) {
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center ${small ? "h-9 w-8" : "h-20 w-[4.5rem]"}`}
+      className={`relative inline-flex shrink-0 drop-shadow-[0_10px_20px_rgba(0,0,0,0.32)] ${small ? "h-11 w-11" : "h-44 w-44"}`}
       aria-hidden="true"
     >
-      <span className="absolute inset-x-[12%] bottom-0 top-[11%] [clip-path:polygon(50%_100%,7%_70%,7%_12%,50%_0,93%_12%,93%_70%)] bg-gradient-to-b from-slate-200 via-white to-slate-400 p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.28)]">
-        <span className="block h-full w-full [clip-path:inherit] bg-gradient-to-br from-[#15263b] via-[#f7f3ea] to-[#718197]" />
-      </span>
-      <span className="absolute left-1/2 top-0 h-[28%] w-[46%] -translate-x-1/2 [clip-path:polygon(15%_0,85%_0,100%_28%,67%_100%,33%_100%,0_28%)] bg-gradient-to-b from-[#f7d77f] via-[#c9a84c] to-[#8b6a21] shadow-[0_3px_10px_rgba(201,168,76,0.42)]" />
+      <Image
+        src="/logo.png"
+        alt=""
+        fill
+        sizes={small ? "44px" : "176px"}
+        className="object-contain"
+        priority={small}
+      />
     </span>
   );
 }
