@@ -32,13 +32,17 @@ export default function PortalLoginPage() {
 
   async function onSubmit(data: LoginFormData) {
     setServerError(null)
-    const { error } = await supabase.auth.signInWithPassword({
-      email:    data.email,
-      password: data.password,
-    })
-    if (error) { setServerError(error.message); return }
-    router.push('/portal/dashboard')
-    router.refresh()
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email.trim(),
+        password: data.password,
+      })
+      if (error) { setServerError(error.message); return }
+      router.push(authData.user?.user_metadata?.role === 'admin' ? '/admin/dashboard' : '/portal/dashboard')
+      router.refresh()
+    } catch {
+      setServerError('Unable to connect to the account service. Check your connection and try again.')
+    }
   }
 
   const inputStyle = {
