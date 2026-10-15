@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import "./globals.css";
+import PasswordRecoveryRedirect from "@/components/PasswordRecoveryRedirect";
 import IntroSplash from "@/components/IntroSplash";
 
 export default function RootLayout({
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="relative">
+        <PasswordRecoveryRedirect />
         {showIntro && (
           <IntroSplash onFinish={() => setShowIntro(false)} />
         )}
