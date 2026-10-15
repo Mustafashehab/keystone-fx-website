@@ -20,6 +20,7 @@ const ACCOUNT_TYPE_OPTIONS = [
 export default function PortalRegisterPage() {
   const supabase = createClient()
   const router = useRouter()
+  const [confirmationPending, setConfirmationPending] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -34,60 +35,49 @@ export default function PortalRegisterPage() {
   async function onSubmit(data: RegisterFormData) {
     setServerError(null)
 
-    const { error } = await supabase.auth.signUp({
-      email:    data.email,
-      password: data.password,
-      options: {
-        data: {
-          first_name:   data.firstName,
-          last_name:    data.lastName,
-          account_type: data.accountType,
-          role:         'client',
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email.trim(),
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.firstName.trim(),
+            last_name: data.lastName.trim(),
+            account_type: data.accountType,
+            role: 'client',
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
-        emailRedirectTo: undefined,
-      },
-    })
+      })
+      if (error) { setServerError(error.message); return }
 
-    if (error) {
-      setServerError(error.message)
-      return
+      if (!authData.session) {
+        setConfirmationPending(true)
+        return
+      }
+
+      // Session comes directly from signup when email confirmation is disabled.
+      // Passwords are never sent to the notification endpoints.
+      await Promise.allSettled([
+        fetch('/api/notifications/welcome-email', { method: 'POST' }),
+        fetch('/api/notifications/client-registered', { method: 'POST' }),
+      ])
+      router.push('/portal/dashboard')
+      router.refresh()
+    } catch {
+      setServerError('Unable to connect to the account service. Check your connection and try signing in before registering again.')
     }
+  }
 
-    // Sign in immediately (no email confirmation required)
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email:    data.email,
-      password: data.password,
-    })
-
-    if (signInError) {
-      setServerError(signInError.message)
-      return
-    }
-
-    // Fire welcome email (fire and forget)
-    fetch('/api/notifications/welcome-email', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        email:     data.email,
-        password:  data.password,
-        firstName: data.firstName,
-        lastName:  data.lastName,
-      }),
-    }).catch(() => {})
-
-    // Fire client-registered notification (fire and forget)
-    fetch('/api/notifications/client-registered', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        clientName:  `${data.firstName} ${data.lastName}`,
-        email:       data.email,
-        accountType: data.accountType,
-      }),
-    }).catch(() => {})
-
-    router.push('/portal/dashboard')
+  if (confirmationPending) {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-2xl font-semibold text-[var(--kfx-text)]">Check your email</h1>
+        <p className="text-sm text-[var(--kfx-text-muted)]">If this is a new registration, open the confirmation email to finish creating your account. Check your spam folder too. If you already have an account, sign in or reset your password.</p>
+        <Link href="/portal/login" className="block font-medium text-[var(--kfx-accent)]">Go to sign in</Link>
+        <Link href="/portal/forgot-password" className="block text-sm text-[var(--kfx-accent)]">Reset password</Link>
+      </div>
+    )
   }
 
   return (
