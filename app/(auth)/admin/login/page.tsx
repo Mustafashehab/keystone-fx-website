@@ -166,6 +166,7 @@ export default function AdminLoginPage() {
               {isSubmitting ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
+          <a href="/portal/forgot-password" className="mt-4 block text-center text-sm text-[#92762c]">Forgot password?</a>
         </div>
 
         <div className="flex items-center justify-center gap-2 mt-5">
