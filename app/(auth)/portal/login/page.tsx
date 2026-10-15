@@ -32,17 +32,13 @@ export default function PortalLoginPage() {
 
   async function onSubmit(data: LoginFormData) {
     setServerError(null)
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email:    data.email,
-        password: data.password,
-      })
-      if (error) { setServerError(error.message); return }
-      router.push('/portal/dashboard')
-      router.refresh()
-    } catch {
-      setServerError('The authentication service is temporarily unavailable. Please try again later or contact support.')
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email:    data.email,
+      password: data.password,
+    })
+    if (error) { setServerError(error.message); return }
+    router.push('/portal/dashboard')
+    router.refresh()
   }
 
   const inputStyle = {
@@ -170,7 +166,8 @@ export default function PortalLoginPage() {
 
           <div className="mt-5 text-center">
             <p className="text-xs" style={{ color: '#92816a' }}>
-              New applications are temporarily paused.
+              Don&apos;t have an account?{' '}
+              <Link href="/portal/register" className="font-semibold transition-colors" style={{ color: GOLD }}>Apply now</Link>
             </p>
           </div>
         </div>
