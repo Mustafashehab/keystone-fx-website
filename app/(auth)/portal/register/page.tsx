@@ -122,8 +122,19 @@ export default function PortalRegisterPage() {
         />
 
         <Alert variant="info">
-          By registering you agree to our Terms of Service and Privacy Policy.
-          Your information will be used for regulatory compliance and account verification purposes only.
+          By registering you agree to our{' '}
+          <Link href="/en/terms" target="_blank" rel="noopener noreferrer" className="font-medium underline">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link href="/en/privacy" target="_blank" rel="noopener noreferrer" className="font-medium underline">
+            Privacy Policy
+          </Link>
+          , and confirm you have read our{' '}
+          <Link href="/en/risk-warning" target="_blank" rel="noopener noreferrer" className="font-medium underline">
+            Risk Warning
+          </Link>
+          . Your information will be used for regulatory compliance and account verification purposes only.
         </Alert>
 
         <Button type="submit" variant="primary" size="lg" loading={isSubmitting} className="w-full">
